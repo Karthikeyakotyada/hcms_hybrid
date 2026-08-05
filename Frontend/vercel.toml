@@ -1,5 +1,0 @@
-# Vercel configuration for Single Page Application (SPA) routing with React Router
-
-[[rewrites]]
-source = "/(.*)"
-destination = "/index.html"
