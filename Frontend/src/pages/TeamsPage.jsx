@@ -36,13 +36,13 @@ const TeamsPage = () => {
   const initialFormState = {
     teamNumber: '',
     teamName: '',
-    department: 'Computer Science',
+    department: '',
     guideName: '',
     members: [
-      { name: '', registerNumber: '', department: 'Computer Science', email: '', phone: '' },
-      { name: '', registerNumber: '', department: 'Computer Science', email: '', phone: '' },
-      { name: '', registerNumber: '', department: 'Computer Science', email: '', phone: '' },
-      { name: '', registerNumber: '', department: 'Computer Science', email: '', phone: '' },
+      { name: '', registerNumber: '', department: '', email: '', phone: '' },
+      { name: '', registerNumber: '', department: '', email: '', phone: '' },
+      { name: '', registerNumber: '', department: '', email: '', phone: '' },
+      { name: '', registerNumber: '', department: '', email: '', phone: '' },
     ],
   };
 
