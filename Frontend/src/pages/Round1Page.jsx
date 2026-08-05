@@ -92,10 +92,23 @@ const Round1Page = () => {
       return;
     }
 
-    const payloadIndScores = Object.entries(individualScores).map(([memberId, score]) => ({
-      memberId,
-      score: Number(score) || 0,
-    }));
+    let hasIndError = false;
+    const payloadIndScores = Object.entries(individualScores).map(([memberId, score]) => {
+      const numScore = Number(score);
+      if (score !== '' && (isNaN(numScore) || numScore < 1 || numScore > 100)) {
+        hasIndError = true;
+      }
+      return {
+        memberId,
+        score: score === '' ? 0 : numScore,
+      };
+    });
+
+    if (hasIndError) {
+      setError('Individual Scores must be between 1 and 100');
+      setSaving(false);
+      return;
+    }
 
     setSaving(true);
     try {

@@ -1,10 +1,6 @@
 const Team = require('../models/Team');
 const Member = require('../models/Member');
-const Round1IndividualScore = require('../models/Round1IndividualScore');
-const Round2IndividualScore = require('../models/Round2IndividualScore');
-const Round1CompetitionScore = require('../models/Round1CompetitionScore');
-const Round2CompetitionScore = require('../models/Round2CompetitionScore');
-const { logActivity } = require('../utils/activityLogger');
+const EvaluationScore = require('../models/EvaluationScore');
 
 // @desc    Get all teams with search and pagination
 // @route   GET /api/teams
@@ -24,7 +20,6 @@ const getTeams = async (req, res) => {
     }
 
     if (search) {
-      // Find members matching name or registerNumber
       const matchingMembers = await Member.find({
         $or: [
           { name: { $regex: search, $options: 'i' } },
@@ -65,7 +60,7 @@ const getTeams = async (req, res) => {
   }
 };
 
-// @desc    Get single team details with evaluation scores
+// @desc    Get single team details
 // @route   GET /api/teams/:id
 // @access  Private
 const getTeamById = async (req, res) => {
@@ -75,23 +70,11 @@ const getTeamById = async (req, res) => {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    const r1Comp = await Round1CompetitionScore.findOne({ teamId: team._id });
-    const r2Comp = await Round2CompetitionScore.findOne({ teamId: team._id });
-    const r1Ind = await Round1IndividualScore.find({ teamId: team._id });
-    const r2Ind = await Round2IndividualScore.find({ teamId: team._id });
+    const scores = await EvaluationScore.find({ teamId: team._id }).populate('roundId');
 
     res.json({
       team,
-      round1: {
-        competitionScore: r1Comp ? r1Comp.score : null,
-        comments: r1Comp ? r1Comp.comments : '',
-        individualScores: r1Ind,
-      },
-      round2: {
-        competitionScore: r2Comp ? r2Comp.score : null,
-        comments: r2Comp ? r2Comp.comments : '',
-        individualScores: r2Ind,
-      },
+      scores,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching team details', error: error.message });
@@ -105,7 +88,6 @@ const createTeam = async (req, res) => {
   try {
     const { teamNumber, teamName, department, guideName, members } = req.body;
 
-    // Validation
     if (!teamNumber || !teamName || !department) {
       return res.status(400).json({ message: 'Team number, name, and department are required' });
     }
@@ -114,13 +96,11 @@ const createTeam = async (req, res) => {
       return res.status(400).json({ message: 'Each team must have exactly 4 members' });
     }
 
-    // Check duplicate teamNumber
     const existingTeam = await Team.findOne({ teamNumber: teamNumber.trim() });
     if (existingTeam) {
       return res.status(400).json({ message: `Team Number '${teamNumber}' already exists` });
     }
 
-    // Validate members data and check duplicate register numbers
     const regNumbersInRequest = new Set();
     for (let i = 0; i < members.length; i++) {
       const m = members[i];
@@ -138,7 +118,6 @@ const createTeam = async (req, res) => {
       regNumbersInRequest.add(reg);
     }
 
-    // Check register numbers against DB
     const existingMembers = await Member.find({
       registerNumber: { $in: Array.from(regNumbersInRequest) },
     });
@@ -149,7 +128,6 @@ const createTeam = async (req, res) => {
       });
     }
 
-    // Create Team container first
     const newTeam = new Team({
       teamNumber: teamNumber.trim(),
       teamName: teamName.trim(),
@@ -159,7 +137,6 @@ const createTeam = async (req, res) => {
 
     await newTeam.save();
 
-    // Create Members referencing newTeam._id
     const createdMemberIds = [];
     for (const m of members) {
       const memberDoc = await Member.create({
@@ -175,11 +152,6 @@ const createTeam = async (req, res) => {
 
     newTeam.members = createdMemberIds;
     await newTeam.save();
-
-    await logActivity(
-      'TEAM_CREATED',
-      `Team '${newTeam.teamNumber} - ${newTeam.teamName}' created with 4 members`
-    );
 
     const populatedTeam = await Team.findById(newTeam._id).populate('members');
     res.status(201).json(populatedTeam);
@@ -202,7 +174,6 @@ const updateTeam = async (req, res) => {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    // Check teamNumber duplicate if changed
     if (teamNumber && teamNumber.trim() !== team.teamNumber) {
       const dupTeam = await Team.findOne({ teamNumber: teamNumber.trim() });
       if (dupTeam) {
@@ -215,13 +186,11 @@ const updateTeam = async (req, res) => {
     if (department) team.department = department.trim();
     if (guideName !== undefined) team.guideName = guideName.trim();
 
-    // If members provided, validate 4 members
     if (members) {
       if (!Array.isArray(members) || members.length !== 4) {
         return res.status(400).json({ message: 'Each team must have exactly 4 members' });
       }
 
-      // Validate register numbers uniqueness excluding current team members
       const currentMemberIds = team.members.map((id) => id.toString());
       for (const m of members) {
         const reg = m.registerNumber.trim().toUpperCase();
@@ -236,7 +205,6 @@ const updateTeam = async (req, res) => {
         }
       }
 
-      // Update existing member docs or recreate
       for (let i = 0; i < members.length; i++) {
         const mData = members[i];
         if (mData._id && currentMemberIds.includes(mData._id)) {
@@ -248,7 +216,6 @@ const updateTeam = async (req, res) => {
             phone: mData.phone ? mData.phone.trim() : '',
           });
         } else {
-          // If update by index
           const memberIdToUpdate = team.members[i];
           if (memberIdToUpdate) {
             await Member.findByIdAndUpdate(memberIdToUpdate, {
@@ -264,7 +231,6 @@ const updateTeam = async (req, res) => {
     }
 
     await team.save();
-    await logActivity('TEAM_UPDATED', `Updated team details for '${team.teamNumber}'`);
 
     const updatedTeam = await Team.findById(teamId).populate('members');
     res.json(updatedTeam);
@@ -284,17 +250,9 @@ const deleteTeam = async (req, res) => {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    // Delete members
     await Member.deleteMany({ teamId });
-    // Delete scores
-    await Round1IndividualScore.deleteMany({ teamId });
-    await Round2IndividualScore.deleteMany({ teamId });
-    await Round1CompetitionScore.deleteMany({ teamId });
-    await Round2CompetitionScore.deleteMany({ teamId });
-    // Delete team
+    await EvaluationScore.deleteMany({ teamId });
     await Team.findByIdAndDelete(teamId);
-
-    await logActivity('TEAM_DELETED', `Deleted team '${team.teamNumber} - ${team.teamName}'`);
 
     res.json({ message: `Team ${team.teamNumber} deleted successfully` });
   } catch (error) {
@@ -329,7 +287,6 @@ const bulkImportTeams = async (req, res) => {
           continue;
         }
 
-        // Create team
         const newTeam = await Team.create({
           teamNumber: t.teamNumber.trim(),
           teamName: t.teamName.trim(),
@@ -358,7 +315,6 @@ const bulkImportTeams = async (req, res) => {
       }
     }
 
-    await logActivity('BULK_IMPORT', `Bulk imported ${createdCount} teams`);
     res.json({
       message: `Bulk import completed. Successfully imported ${createdCount} teams.`,
       createdCount,

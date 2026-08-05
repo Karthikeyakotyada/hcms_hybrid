@@ -5,8 +5,7 @@ import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TeamsPage from './pages/TeamsPage';
-import Round1Page from './pages/Round1Page';
-import Round2Page from './pages/Round2Page';
+import EvaluationPage from './pages/EvaluationPage';
 import ResultsPage from './pages/ResultsPage';
 import WinnersPage from './pages/WinnersPage';
 import SettingsPage from './pages/SettingsPage';
@@ -16,8 +15,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#94a3b8' }}>
-        Authenticating HEMS session...
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0d14', color: '#00f0ff', fontWeight: '700' }}>
+        Authenticating HEMS Spidey Session...
       </div>
     );
   }
@@ -45,8 +44,10 @@ const App = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/teams" element={<TeamsPage />} />
-          <Route path="/round1" element={<Round1Page />} />
-          <Route path="/round2" element={<Round2Page />} />
+          <Route path="/evaluation" element={<EvaluationPage />} />
+          {/* Legacy fallback routes redirecting to /evaluation */}
+          <Route path="/round1" element={<Navigate to="/evaluation" replace />} />
+          <Route path="/round2" element={<Navigate to="/evaluation" replace />} />
           <Route path="/results" element={<ResultsPage />} />
           <Route path="/winners" element={<WinnersPage />} />
           <Route path="/settings" element={<SettingsPage />} />

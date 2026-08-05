@@ -9,9 +9,7 @@ import {
   CheckCircle,
   Clock,
   ArrowRight,
-  Activity,
   CheckSquare,
-  Award,
   Trophy,
 } from 'lucide-react';
 
@@ -42,8 +40,8 @@ const DashboardPage = () => {
 
   if (loading && !stats) {
     return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-        Loading dashboard statistics...
+      <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
+        Loading Spidey Dashboard statistics...
       </div>
     );
   }
@@ -69,7 +67,7 @@ const DashboardPage = () => {
           value={stats.totalTeams}
           subtitle="Registered hackathon teams"
           icon={Users}
-          color="#6366f1"
+          color="var(--spidey-red)"
         />
 
         <StatCard
@@ -77,19 +75,19 @@ const DashboardPage = () => {
           value={stats.totalParticipants}
           subtitle="Across all registered teams"
           icon={UserCheck}
-          color="#06b6d4"
+          color="var(--spidey-cyan)"
         />
 
         <StatCard
-          title="Current Phase"
-          value={stats.currentRound}
-          subtitle={stats.isLocked ? 'Evaluation is LOCKED' : 'Evaluation is OPEN'}
+          title="Active Rounds"
+          value={stats.activeRoundsCount}
+          subtitle={stats.isLocked ? 'System is LOCKED' : 'Evaluation is ACTIVE'}
           icon={Layers}
           color={stats.isLocked ? '#ef4444' : '#10b981'}
         />
 
         <StatCard
-          title="Completed Evaluations"
+          title="Fully Evaluated Teams"
           value={stats.completedEvaluations}
           subtitle={`Out of ${stats.totalTeams} teams`}
           icon={CheckCircle}
@@ -97,11 +95,11 @@ const DashboardPage = () => {
         />
 
         <StatCard
-          title="Pending Evaluations"
+          title="Pending Teams"
           value={stats.pendingEvaluations}
-          subtitle="Teams awaiting score"
+          subtitle="Teams awaiting complete evaluation"
           icon={Clock}
-          color="#f59e0b"
+          color="var(--spidey-gold)"
         />
       </div>
 
@@ -109,14 +107,14 @@ const DashboardPage = () => {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)' }}>
-              Evaluation Completion Progress ({stats.currentRound})
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+              Overall Evaluation Progress
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              {stats.completedEvaluations} of {stats.totalTeams} teams evaluated
+              {stats.completedEvaluations} of {stats.totalTeams} teams fully evaluated across active rounds
             </p>
           </div>
-          <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--accent-primary)' }}>
+          <span style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--spidey-cyan)' }}>
             {stats.progressPercentage}%
           </span>
         </div>
@@ -129,91 +127,51 @@ const DashboardPage = () => {
       {/* Quick Action Shortcuts */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
         <Link to="/teams" style={{ textDecoration: 'none' }}>
-          <div className="card" style={{ transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}>
+          <div className="card" style={{ transition: 'all 0.2s', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
-              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }}>
+              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(229, 9, 20, 0.15)', color: 'var(--spidey-red)' }}>
                 <Users size={22} />
               </div>
-              <ArrowRight size={18} color="var(--text-muted)" />
+              <ArrowRight size={18} color="var(--spidey-cyan)" />
             </div>
-            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem' }}>Manage Teams</h4>
+            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem', fontWeight: '700' }}>Manage Teams & Rosters</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Add, search, edit, or import hackathon teams and 4-member rosters.
+              Add, search, edit, or import hackathon teams and member details.
             </p>
           </div>
         </Link>
 
-        <Link to={stats.currentRound === 'Round 2' ? '/round2' : '/round1'} style={{ textDecoration: 'none' }}>
-          <div className="card" style={{ transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}>
+        <Link to="/evaluation" style={{ textDecoration: 'none' }}>
+          <div className="card" style={{ transition: 'all 0.2s', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
-              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-                {stats.currentRound === 'Round 2' ? <Award size={22} /> : <CheckSquare size={22} />}
+              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(0, 240, 255, 0.15)', color: 'var(--spidey-cyan)' }}>
+                <CheckSquare size={22} />
               </div>
-              <ArrowRight size={18} color="var(--text-muted)" />
+              <ArrowRight size={18} color="var(--spidey-cyan)" />
             </div>
-            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
-              Enter {stats.currentRound} Scores
+            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem', fontWeight: '700' }}>
+              Evaluation & Rounds Module
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Directly evaluate competition scores (1-10) and individual member scores.
+              Evaluate teams (1-10) and members (1-100). Create, edit & manage evaluation rounds.
             </p>
           </div>
         </Link>
 
         <Link to="/results" style={{ textDecoration: 'none' }}>
-          <div className="card" style={{ transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}>
+          <div className="card" style={{ transition: 'all 0.2s', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
-              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
+              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: 'var(--spidey-gold)' }}>
                 <Trophy size={22} />
               </div>
-              <ArrowRight size={18} color="var(--text-muted)" />
+              <ArrowRight size={18} color="var(--spidey-cyan)" />
             </div>
-            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem' }}>Leaderboard & Exports</h4>
+            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem', fontWeight: '700' }}>Leaderboard & Exports</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              View live calculated rankings (`R1 * R2`) and export CSV/Excel/PDF reports.
+              View overall team rankings computed across all active rounds & export reports.
             </p>
           </div>
         </Link>
-      </div>
-
-      {/* Recent Activity Log Section */}
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-          <Activity size={20} color="var(--accent-primary)" />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)' }}>
-            Recent Activity Log
-          </h3>
-        </div>
-
-        {stats.recentActivities && stats.recentActivities.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {stats.recentActivities.map((act) => (
-              <div
-                key={act._id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.75rem 1rem',
-                  backgroundColor: 'var(--bg-input)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.875rem',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span className="badge badge-info">{act.action}</span>
-                  <span style={{ color: 'var(--text-primary)' }}>{act.details}</span>
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'right' }}>
-                  <span>{new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No recent activity recorded yet.</p>
-        )}
       </div>
     </div>
   );

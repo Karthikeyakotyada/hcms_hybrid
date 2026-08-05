@@ -6,6 +6,7 @@ dotenv.config();
 
 const authRoutes = require('./routes/authRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const roundRoutes = require('./routes/roundRoutes');
 const evalRoutes = require('./routes/evalRoutes');
 const resultsRoutes = require('./routes/resultsRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/rounds', roundRoutes);
 app.use('/api/evaluation', evalRoutes);
 app.use('/api', resultsRoutes);
 app.use('/api', settingsRoutes);

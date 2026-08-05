@@ -1,21 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { settingsService } from '../services/settingsService';
-import Pagination from '../components/Pagination';
 import {
   Sliders,
   Lock,
   Unlock,
-  Layers,
   AlertTriangle,
-  Activity,
   CheckCircle,
   AlertCircle,
   Save,
+  Trophy,
 } from 'lucide-react';
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState(null);
-  const [currentRound, setCurrentRound] = useState('Round 1');
   const [isLocked, setIsLocked] = useState(false);
   const [topTeamsCount, setTopTeamsCount] = useState(3);
   const [loading, setLoading] = useState(true);
@@ -28,16 +25,11 @@ const SettingsPage = () => {
   const [confirmText, setConfirmText] = useState('');
   const [resetting, setResetting] = useState(false);
 
-  // Activity Logs state
-  const [logs, setLogs] = useState([]);
-  const [logPagination, setLogPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
-
   const fetchSettingsData = async () => {
     try {
       setLoading(true);
       const data = await settingsService.getSettings();
       setSettings(data);
-      setCurrentRound(data.currentRound);
       setIsLocked(data.isLocked);
       setTopTeamsCount(data.topTeamsCount || 3);
     } catch (err) {
@@ -47,19 +39,8 @@ const SettingsPage = () => {
     }
   };
 
-  const fetchLogs = async (page = 1) => {
-    try {
-      const data = await settingsService.getActivityLogs(page, 10);
-      setLogs(data.logs);
-      setLogPagination(data.pagination);
-    } catch (err) {
-      console.error('Error fetching logs:', err);
-    }
-  };
-
   useEffect(() => {
     fetchSettingsData();
-    fetchLogs(1);
   }, []);
 
   const handleSaveSettings = async (e) => {
@@ -69,13 +50,11 @@ const SettingsPage = () => {
     setSaving(true);
     try {
       const updated = await settingsService.updateSettings({
-        currentRound,
         isLocked,
         topTeamsCount: Number(topTeamsCount),
       });
       setSettings(updated);
       setMsg('System settings updated successfully!');
-      fetchLogs(1);
       setTimeout(() => setMsg(''), 4000);
     } catch (err) {
       setError(err.response?.data?.message || 'Error updating settings');
@@ -97,7 +76,6 @@ const SettingsPage = () => {
       setConfirmText('');
       setMsg('All evaluation data has been reset to zero.');
       fetchSettingsData();
-      fetchLogs(1);
       setTimeout(() => setMsg(''), 4000);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to reset evaluation');
@@ -107,7 +85,7 @@ const SettingsPage = () => {
   };
 
   if (loading && !settings) {
-    return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading settings...</div>;
+    return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--spidey-cyan)', fontWeight: '700' }}>Loading system settings...</div>;
   }
 
   return (
@@ -115,11 +93,11 @@ const SettingsPage = () => {
       {/* Header */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Sliders size={24} color="var(--accent-primary)" />
-          <h2 style={{ fontSize: '1.4rem', fontWeight: '700' }}>System Settings & Controls</h2>
+          <Sliders size={24} color="var(--spidey-red)" />
+          <h2 style={{ fontSize: '1.4rem', fontWeight: '800' }}>System Settings & Controls</h2>
         </div>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-          Manage evaluation round progression, system locking, winner count, and safety controls.
+          Manage evaluation locking, leaderboard configuration, and data resets.
         </p>
       </div>
 
@@ -137,82 +115,42 @@ const SettingsPage = () => {
 
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSettings} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)' }}>
-          Evaluation Workflow Configuration
+        <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)' }}>
+          Portal Configuration
         </h3>
 
-        {/* Setting 1: Current Round */}
-        <div style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
-          <label className="form-label" style={{ fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <Layers size={18} color="var(--accent-primary)" /> Current Evaluation Round
-          </label>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            When Round 2 starts, Round 1 becomes read-only. When set to Completed, both rounds become read-only.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            {['Round 1', 'Round 2', 'Completed'].map((rnd) => (
-              <label
-                key={rnd}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  padding: '0.85rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: currentRound === rnd ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                  backgroundColor: currentRound === rnd ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-card)',
-                  cursor: 'pointer',
-                  fontSize: '0.95rem',
-                  fontWeight: '600',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="currentRound"
-                  value={rnd}
-                  checked={currentRound === rnd}
-                  onChange={(e) => setCurrentRound(e.target.value)}
-                />
-                <span>{rnd}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Setting 2: Lock Evaluation */}
+        {/* Setting 1: Lock Evaluation */}
         <div style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <label className="form-label" style={{ fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {isLocked ? <Lock size={18} color="#ef4444" /> : <Unlock size={18} color="#10b981" />} Lock Evaluation System
+              <label className="form-label" style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isLocked ? <Lock size={18} color="#ef4444" /> : <Unlock size={18} color="#10b981" />} Lock System Evaluation
               </label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                When evaluation is locked, no team creation, editing, or score entries can occur anywhere in the app.
+                When evaluation is locked, no score submissions or team changes can occur anywhere in the portal.
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setIsLocked(!isLocked)}
-              className={`btn ${isLocked ? 'btn-danger' : 'btn-success'}`}
+              className={`btn ${isLocked ? 'btn-danger' : 'btn-cyan'}`}
             >
               {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
-              <span>{isLocked ? 'System is LOCKED (Click to Unlock)' : 'System is OPEN (Click to Lock)'}</span>
+              <span>{isLocked ? 'System is LOCKED (Click to Unlock)' : 'System is ACTIVE (Click to Lock)'}</span>
             </button>
           </div>
         </div>
 
-        {/* Setting 3: Top Teams Count */}
+        {/* Setting 2: Top Teams Count */}
         <div style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '1rem', alignItems: 'center' }}>
             <div>
-              <label className="form-label" style={{ fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>
-                Top Teams Display Count (Winners Showcase)
+              <label className="form-label" style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Trophy size={18} color="var(--spidey-gold)" /> Top Teams Showcase Count
               </label>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                Number of top ranked teams displayed on the Winners Showcase page (Default: 3).
+                Number of top ranked teams highlighted on the Winners Showcase page (Default: 3).
               </p>
             </div>
 
@@ -233,7 +171,7 @@ const SettingsPage = () => {
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }} disabled={saving}>
             <Save size={18} />
-            <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
+            <span>{saving ? 'Saving...' : 'Save System Settings'}</span>
           </button>
         </div>
       </form>
@@ -246,7 +184,7 @@ const SettingsPage = () => {
               <AlertTriangle size={20} /> Danger Zone: Reset Evaluation Data
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Completely wipes all stored Round 1 and Round 2 competition & individual scores. Team roster stays intact.
+              Wipes all evaluation scores and member marks across all rounds. Team registration roster stays intact.
             </p>
           </div>
 
@@ -256,65 +194,12 @@ const SettingsPage = () => {
         </div>
       </div>
 
-      {/* Audit Activity Logs */}
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-          <Activity size={20} color="var(--accent-primary)" />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--text-primary)' }}>
-            System Audit & Activity Logs
-          </h3>
-        </div>
-
-        <div className="table-container">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Details</th>
-                <th>User</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.length === 0 ? (
-                <tr>
-                  <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                    No activity logs recorded.
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => (
-                  <tr key={log._id}>
-                    <td>
-                      <span className="badge badge-info">{log.action}</span>
-                    </td>
-                    <td style={{ color: 'var(--text-primary)' }}>{log.details}</td>
-                    <td>{log.user || 'Organizer'}</td>
-                    <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                      {new Date(log.timestamp).toLocaleString()}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination
-          currentPage={logPagination.page}
-          totalPages={logPagination.totalPages}
-          onPageChange={fetchLogs}
-          totalItems={logPagination.total}
-          itemLabel="log entries"
-        />
-      </div>
-
       {/* Reset Confirmation Modal */}
       {showResetModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <AlertTriangle size={20} /> Reset Evaluation Confirmation
               </h3>
             </div>
@@ -322,10 +207,10 @@ const SettingsPage = () => {
             <form onSubmit={handleResetSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  This action is <strong>IRREVERSIBLE</strong>. It will clear all Round 1 & Round 2 evaluation scores, comments, and member individual marks.
+                  This action is <strong>IRREVERSIBLE</strong>. It will clear all evaluation scores, comments, and member individual marks across all rounds.
                 </p>
 
-                <p style={{ fontSize: '0.85rem', color: '#f87171', fontWeight: '600' }}>
+                <p style={{ fontSize: '0.85rem', color: '#f87171', fontWeight: '700' }}>
                   To confirm, type <strong>RESET EVALUATION</strong> below:
                 </p>
 
