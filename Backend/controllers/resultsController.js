@@ -11,22 +11,50 @@ const calculateOverallResults = async (search = '', department = '') => {
     matchQuery.department = { $regex: department, $options: 'i' };
   }
   if (search) {
-    const matchingMembers = await Member.find({
-      $or: [
-        { name: { $regex: search, $options: 'i' } },
-        { registerNumber: { $regex: search, $options: 'i' } },
-      ],
-    }).select('teamId');
+    const trimmed = search.trim();
+    const cleanNum = trimmed.replace(/^t[-_\s]*/i, '').replace(/^0+/, '');
+    const isNumeric = /^\d+$/.test(cleanNum) && cleanNum.length > 0;
 
-    const teamIdsFromMembers = matchingMembers.map((m) => m.teamId);
+    if (isNumeric) {
+      const teamExists = await Team.exists({ teamNumber: cleanNum });
+      if (teamExists) {
+        matchQuery.teamNumber = cleanNum;
+      } else {
+        const matchingMembers = await Member.find({
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { registerNumber: { $regex: search, $options: 'i' } },
+          ],
+        }).select('teamId');
 
-    matchQuery.$or = [
-      { teamNumber: { $regex: search, $options: 'i' } },
-      { teamName: { $regex: search, $options: 'i' } },
-      { department: { $regex: search, $options: 'i' } },
-      { guideName: { $regex: search, $options: 'i' } },
-      { _id: { $in: teamIdsFromMembers } },
-    ];
+        const teamIdsFromMembers = matchingMembers.map((m) => m.teamId);
+
+        matchQuery.$or = [
+          { teamNumber: cleanNum },
+          { teamName: { $regex: search, $options: 'i' } },
+          { department: { $regex: search, $options: 'i' } },
+          { guideName: { $regex: search, $options: 'i' } },
+          { _id: { $in: teamIdsFromMembers } },
+        ];
+      }
+    } else {
+      const matchingMembers = await Member.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { registerNumber: { $regex: search, $options: 'i' } },
+        ],
+      }).select('teamId');
+
+      const teamIdsFromMembers = matchingMembers.map((m) => m.teamId);
+
+      matchQuery.$or = [
+        { teamNumber: { $regex: search, $options: 'i' } },
+        { teamName: { $regex: search, $options: 'i' } },
+        { department: { $regex: search, $options: 'i' } },
+        { guideName: { $regex: search, $options: 'i' } },
+        { _id: { $in: teamIdsFromMembers } },
+      ];
+    }
   }
 
   const teams = await Team.find(matchQuery).populate('members');
