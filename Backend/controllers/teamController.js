@@ -11,9 +11,19 @@ const getTeams = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const search = req.query.search ? req.query.search.trim() : '';
+    const minTeam = req.query.minTeam ? parseInt(req.query.minTeam, 10) : null;
+    const maxTeam = req.query.maxTeam ? parseInt(req.query.maxTeam, 10) : null;
     const department = req.query.department ? req.query.department.trim() : '';
 
     let matchQuery = {};
+
+    if (minTeam !== null && maxTeam !== null && !isNaN(minTeam) && !isNaN(maxTeam)) {
+      const allowedNumbers = [];
+      for (let i = minTeam; i <= maxTeam; i++) {
+        allowedNumbers.push(String(i));
+      }
+      matchQuery.teamNumber = { $in: allowedNumbers };
+    }
 
     if (department) {
       matchQuery.department = { $regex: department, $options: 'i' };
@@ -69,7 +79,8 @@ const getTeams = async (req, res) => {
     const totalTeams = await Team.countDocuments(matchQuery);
     const teams = await Team.find(matchQuery)
       .populate('members')
-      .sort({ createdAt: -1 })
+      .collation({ locale: 'en', numericOrdering: true })
+      .sort({ teamNumber: 1 })
       .skip(skip)
       .limit(limit);
 

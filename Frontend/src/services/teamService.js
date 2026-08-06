@@ -1,10 +1,12 @@
 import api from './api';
 
 export const teamService = {
-  getTeams: async (page = 1, limit = 10, search = '', department = '') => {
+  getTeams: async (page = 1, limit = 10, search = '', department = '', minTeam = null, maxTeam = null) => {
     const params = new URLSearchParams({ page, limit });
     if (search) params.append('search', search);
     if (department) params.append('department', department);
+    if (minTeam !== null && minTeam !== undefined && minTeam !== '') params.append('minTeam', minTeam);
+    if (maxTeam !== null && maxTeam !== undefined && maxTeam !== '') params.append('maxTeam', maxTeam);
     const response = await api.get(`/teams?${params.toString()}`);
     return response.data;
   },

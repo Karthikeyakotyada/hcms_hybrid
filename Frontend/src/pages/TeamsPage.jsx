@@ -14,13 +14,143 @@ import {
   AlertCircle,
   CheckCircle,
   Download,
+  Filter,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
+
+const RANGE_OPTIONS = [
+  { label: 'All Teams', value: 'ALL', min: null, max: null },
+  { label: 'Teams 1 – 10', value: '1-10', min: 1, max: 10 },
+  { label: 'Teams 11 – 20', value: '11-20', min: 11, max: 20 },
+  { label: 'Teams 21 – 30', value: '21-30', min: 21, max: 30 },
+  { label: 'Teams 31 – 40', value: '31-40', min: 31, max: 40 },
+  { label: 'Teams 41 – 50', value: '41-50', min: 41, max: 50 },
+  { label: 'Teams 51 – 60', value: '51-60', min: 51, max: 60 },
+  { label: 'Teams 61 – 70', value: '61-70', min: 61, max: 70 },
+];
+
+const SmoothRangeDropdown = ({ selectedValue, onChange, options }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef(null);
+
+  const selectedOption = options.find((o) => o.value === selectedValue) || options[0];
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          backgroundColor: isOpen ? 'rgba(239, 68, 68, 0.12)' : 'var(--bg-secondary)',
+          border: isOpen ? '1px solid var(--spidey-red)' : '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.45rem 0.8rem',
+          color: 'var(--text-primary)',
+          fontSize: '0.85rem',
+          fontWeight: '700',
+          cursor: 'pointer',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: isOpen ? '0 0 12px rgba(239, 68, 68, 0.25)' : 'none',
+          outline: 'none',
+        }}
+      >
+        <Filter size={15} style={{ color: 'var(--spidey-red)', flexShrink: 0 }} />
+        <span>{selectedOption.label}</span>
+        <ChevronDown
+          size={14}
+          style={{
+            color: 'var(--text-muted)',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            marginLeft: '0.15rem',
+          }}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            zIndex: 100,
+            minWidth: '165px',
+            backgroundColor: '#12131e',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '12px',
+            padding: '0.35rem',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(239, 68, 68, 0.15)',
+            backdropFilter: 'blur(16px)',
+            animation: 'fadeInScale 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          {options.map((opt) => {
+            const isSelected = opt.value === selectedValue;
+            return (
+              <div
+                key={opt.value}
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify: 'space-between',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '8px',
+                  fontSize: '0.83rem',
+                  fontWeight: isSelected ? '700' : '500',
+                  color: isSelected ? '#fff' : 'var(--text-secondary)',
+                  backgroundColor: isSelected ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  marginBottom: '2px',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.color = '#fff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }
+                }}
+              >
+                <span>{opt.label}</span>
+                {isSelected && <Check size={14} style={{ color: 'var(--spidey-red)' }} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TeamsPage = () => {
   const [teams, setTeams] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState('');
+  const [teamRange, setTeamRange] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -53,7 +183,9 @@ const TeamsPage = () => {
   const fetchTeams = async (page = 1) => {
     try {
       setLoading(true);
-      const data = await teamService.getTeams(page, 10, search, department);
+      const activeRange = RANGE_OPTIONS.find((r) => r.value === teamRange) || RANGE_OPTIONS[0];
+      const limit = activeRange.min ? 50 : 10;
+      const data = await teamService.getTeams(page, limit, search, department, activeRange.min, activeRange.max);
       setTeams(data.teams);
       setPagination(data.pagination);
       setError('');
@@ -66,7 +198,7 @@ const TeamsPage = () => {
 
   useEffect(() => {
     fetchTeams(1);
-  }, [search, department]);
+  }, [search, department, teamRange]);
 
   const handlePageChange = (newPage) => {
     fetchTeams(newPage);
@@ -206,12 +338,15 @@ const TeamsPage = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header Actions Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
           <SearchBar
             value={search}
             onChange={setSearch}
             placeholder="Search by Team Number, Name, Member Name..."
           />
+
+          {/* Smooth Glassmorphic Team Range Dropdown */}
+          <SmoothRangeDropdown selectedValue={teamRange} onChange={setTeamRange} options={RANGE_OPTIONS} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -253,7 +388,7 @@ const TeamsPage = () => {
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)' }}>
             {loading ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
