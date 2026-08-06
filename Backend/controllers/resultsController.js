@@ -93,12 +93,21 @@ const calculateOverallResults = async (search = '', department = '') => {
     const finalScore = evaluatedRoundsCount > 0 ? Number(weightedTotalScore.toFixed(2)) : null;
 
     const memberDetails = team.members.map((m) => {
+      let totalMemberScore = 0;
+      let evaluatedRoundsForMember = 0;
+
       const memberRoundScores = rounds.map((r) => {
         const scoreDoc = scoreMap.get(`${r._id.toString()}_${team._id.toString()}`);
         let indScore = null;
         if (scoreDoc && scoreDoc.individualScores) {
-          const match = scoreDoc.individualScores.find((item) => item.memberId.toString() === m._id.toString());
-          if (match) indScore = match.score;
+          const match = scoreDoc.individualScores.find(
+            (item) => item.memberId.toString() === m._id.toString()
+          );
+          if (match && match.score !== null && match.score !== undefined) {
+            indScore = match.score;
+            totalMemberScore += indScore;
+            evaluatedRoundsForMember++;
+          }
         }
         return {
           roundId: r._id,
@@ -106,6 +115,11 @@ const calculateOverallResults = async (search = '', department = '') => {
           score: indScore,
         };
       });
+
+      const avgScore =
+        evaluatedRoundsForMember > 0
+          ? Number((totalMemberScore / evaluatedRoundsForMember).toFixed(2))
+          : null;
 
       return {
         memberId: m._id,
@@ -115,6 +129,8 @@ const calculateOverallResults = async (search = '', department = '') => {
         email: m.email,
         phone: m.phone,
         roundScores: memberRoundScores,
+        avgScore: avgScore,
+        evaluatedRoundsCount: evaluatedRoundsForMember,
       };
     });
 

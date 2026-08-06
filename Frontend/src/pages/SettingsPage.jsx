@@ -20,11 +20,6 @@ const SettingsPage = () => {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
 
-  // Reset Modal state
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [confirmText, setConfirmText] = useState('');
-  const [resetting, setResetting] = useState(false);
-
   const fetchSettingsData = async () => {
     try {
       setLoading(true);
@@ -60,27 +55,6 @@ const SettingsPage = () => {
       setError(err.response?.data?.message || 'Error updating settings');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleResetSubmit = async (e) => {
-    e.preventDefault();
-    if (confirmText.trim() !== 'RESET EVALUATION') {
-      alert("Please type 'RESET EVALUATION' exactly to confirm reset.");
-      return;
-    }
-    setResetting(true);
-    try {
-      await settingsService.resetEvaluation();
-      setShowResetModal(false);
-      setConfirmText('');
-      setMsg('All evaluation data has been reset to zero.');
-      fetchSettingsData();
-      setTimeout(() => setMsg(''), 4000);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to reset evaluation');
-    } finally {
-      setResetting(false);
     }
   };
 
@@ -176,66 +150,6 @@ const SettingsPage = () => {
         </div>
       </form>
 
-      {/* Danger Zone */}
-      <div className="card" style={{ border: '1px solid rgba(239, 68, 68, 0.4)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertTriangle size={20} /> Danger Zone: Reset Evaluation Data
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-              Wipes all evaluation scores and member marks across all rounds. Team registration roster stays intact.
-            </p>
-          </div>
-
-          <button onClick={() => setShowResetModal(true)} className="btn btn-danger">
-            Reset Evaluation Scores
-          </button>
-        </div>
-      </div>
-
-      {/* Reset Confirmation Modal */}
-      {showResetModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertTriangle size={20} /> Reset Evaluation Confirmation
-              </h3>
-            </div>
-
-            <form onSubmit={handleResetSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  This action is <strong>IRREVERSIBLE</strong>. It will clear all evaluation scores, comments, and member individual marks across all rounds.
-                </p>
-
-                <p style={{ fontSize: '0.85rem', color: '#f87171', fontWeight: '700' }}>
-                  To confirm, type <strong>RESET EVALUATION</strong> below:
-                </p>
-
-                <input
-                  type="text"
-                  className="form-input font-mono"
-                  placeholder="Type RESET EVALUATION"
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowResetModal(false)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-danger" disabled={resetting}>
-                  {resetting ? 'Resetting...' : 'Confirm Reset All Scores'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

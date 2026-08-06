@@ -69,6 +69,7 @@ const ResultsPage = () => {
           memberName: m.name,
           registerNumber: m.registerNumber,
           department: m.department,
+          avgScore: m.avgScore,
         };
         if (m.roundScores) {
           m.roundScores.forEach((rs) => {
@@ -104,6 +105,7 @@ const ResultsPage = () => {
       header: `${rName} Score`,
       accessor: (r) => r[rName] ?? '-',
     })),
+    { header: 'Average Score', accessor: (r) => r.avgScore ?? '-' },
   ];
 
   return (
@@ -256,18 +258,19 @@ const ResultsPage = () => {
                 {roundColumns.map((rName, idx) => (
                   <th key={idx}>{rName} Ind. Score</th>
                 ))}
+                <th style={{ color: 'var(--spidey-red)', fontWeight: '800' }}>Average Score</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
+                  <td colSpan={6 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
                     Loading member individual records...
                   </td>
                 </tr>
               ) : individualMemberRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={6 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No member records found.
                   </td>
                 </tr>
@@ -284,6 +287,15 @@ const ResultsPage = () => {
                     {roundColumns.map((rName, rIdx) => (
                       <td key={rIdx} style={{ fontFamily: 'JetBrains Mono' }}>{r[rName]}</td>
                     ))}
+                    <td>
+                      {r.avgScore !== null && r.avgScore !== undefined ? (
+                        <span className="font-mono" style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--spidey-red)' }}>
+                          {r.avgScore}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>-</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
