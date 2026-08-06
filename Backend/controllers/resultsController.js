@@ -33,7 +33,6 @@ const calculateOverallResults = async (search = '', department = '') => {
           { teamNumber: cleanNum },
           { teamName: { $regex: search, $options: 'i' } },
           { department: { $regex: search, $options: 'i' } },
-          { guideName: { $regex: search, $options: 'i' } },
           { _id: { $in: teamIdsFromMembers } },
         ];
       }
@@ -51,7 +50,6 @@ const calculateOverallResults = async (search = '', department = '') => {
         { teamNumber: { $regex: search, $options: 'i' } },
         { teamName: { $regex: search, $options: 'i' } },
         { department: { $regex: search, $options: 'i' } },
-        { guideName: { $regex: search, $options: 'i' } },
         { _id: { $in: teamIdsFromMembers } },
       ];
     }
@@ -139,7 +137,6 @@ const calculateOverallResults = async (search = '', department = '') => {
       teamNumber: team.teamNumber,
       teamName: team.teamName,
       department: team.department,
-      guideName: team.guideName,
       roundScores: roundScoresList,
       rawTotalScore,
       weightedTotalScore: finalScore,

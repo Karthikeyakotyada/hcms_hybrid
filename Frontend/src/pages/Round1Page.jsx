@@ -232,7 +232,7 @@ const Round1Page = () => {
                   <div>
                     <h3 style={{ fontSize: '1.3rem', fontWeight: '700' }}>{selectedTeam.teamName}</h3>
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      Department: {selectedTeam.department} {selectedTeam.guideName ? `| Guide: ${selectedTeam.guideName}` : ''}
+                      Department: {selectedTeam.department}
                     </span>
                   </div>
                 </div>

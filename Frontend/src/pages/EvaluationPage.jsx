@@ -370,7 +370,7 @@ const EvaluationPage = () => {
                   <div>
                     <h3 style={{ fontSize: '1.3rem', fontWeight: '800' }}>{selectedTeam.teamName}</h3>
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      Dept: {selectedTeam.department} {selectedTeam.guideName ? `| Guide: ${selectedTeam.guideName}` : ''}
+                      Dept: {selectedTeam.department}
                     </span>
                   </div>
                 </div>

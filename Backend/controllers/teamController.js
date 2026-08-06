@@ -52,7 +52,6 @@ const getTeams = async (req, res) => {
             { teamNumber: cleanNum },
             { teamName: { $regex: search, $options: 'i' } },
             { department: { $regex: search, $options: 'i' } },
-            { guideName: { $regex: search, $options: 'i' } },
             { _id: { $in: teamIdsFromMembers } },
           ];
         }
@@ -70,7 +69,6 @@ const getTeams = async (req, res) => {
           { teamNumber: { $regex: search, $options: 'i' } },
           { teamName: { $regex: search, $options: 'i' } },
           { department: { $regex: search, $options: 'i' } },
-          { guideName: { $regex: search, $options: 'i' } },
           { _id: { $in: teamIdsFromMembers } },
         ];
       }
@@ -125,7 +123,7 @@ const getTeamById = async (req, res) => {
 // @access  Private
 const createTeam = async (req, res) => {
   try {
-    const { teamNumber, teamName, department, guideName, members } = req.body;
+    const { teamNumber, teamName, department, members } = req.body;
 
     if (!teamNumber || !teamName || !department) {
       return res.status(400).json({ message: 'Team number, name, and department are required' });
@@ -171,7 +169,6 @@ const createTeam = async (req, res) => {
       teamNumber: teamNumber.trim(),
       teamName: teamName.trim(),
       department: department.trim(),
-      guideName: guideName ? guideName.trim() : '',
     });
 
     await newTeam.save();
@@ -205,7 +202,7 @@ const createTeam = async (req, res) => {
 // @access  Private
 const updateTeam = async (req, res) => {
   try {
-    const { teamNumber, teamName, department, guideName, members } = req.body;
+    const { teamNumber, teamName, department, members } = req.body;
     const teamId = req.params.id;
 
     const team = await Team.findById(teamId);
@@ -223,7 +220,6 @@ const updateTeam = async (req, res) => {
 
     if (teamName) team.teamName = teamName.trim();
     if (department) team.department = department.trim();
-    if (guideName !== undefined) team.guideName = guideName.trim();
 
     if (members) {
       if (!Array.isArray(members) || members.length !== 4) {
@@ -330,7 +326,6 @@ const bulkImportTeams = async (req, res) => {
           teamNumber: t.teamNumber.trim(),
           teamName: t.teamName.trim(),
           department: t.department.trim(),
-          guideName: t.guideName ? t.guideName.trim() : '',
         });
 
         const memberIds = [];

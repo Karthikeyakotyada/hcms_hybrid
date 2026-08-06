@@ -167,7 +167,6 @@ const TeamsPage = () => {
     teamNumber: '',
     teamName: '',
     department: '',
-    guideName: '',
     members: [
       { name: '', registerNumber: '', department: '', email: '', phone: '' },
       { name: '', registerNumber: '', department: '', email: '', phone: '' },
@@ -216,7 +215,6 @@ const TeamsPage = () => {
       teamNumber: team.teamNumber,
       teamName: team.teamName,
       department: team.department,
-      guideName: team.guideName || '',
       members: team.members.map((m) => ({
         _id: m._id,
         name: m.name,
@@ -301,10 +299,9 @@ const TeamsPage = () => {
   const downloadBulkTemplate = () => {
     const template = [
       {
-        teamNumber: 'T-101',
+        teamNumber: '1',
         teamName: 'Cyber Knights',
         department: 'Computer Science',
-        guideName: 'Dr. Alan Turing',
         members: [
           { name: 'Member 1', registerNumber: 'REG101', department: 'Computer Science', email: 'm1@demo.com', phone: '9876543210' },
           { name: 'Member 2', registerNumber: 'REG102', department: 'Computer Science', email: 'm2@demo.com', phone: '9876543211' },
@@ -327,7 +324,6 @@ const TeamsPage = () => {
     { header: 'Team Number', accessor: (row) => row.teamNumber },
     { header: 'Team Name', accessor: (row) => row.teamName },
     { header: 'Department', accessor: (row) => row.department },
-    { header: 'Guide Name', accessor: (row) => row.guideName || '-' },
     { header: 'Member 1', accessor: (row) => row.members[0] ? `${row.members[0].name} (${row.members[0].registerNumber})` : '-' },
     { header: 'Member 2', accessor: (row) => row.members[1] ? `${row.members[1].name} (${row.members[1].registerNumber})` : '-' },
     { header: 'Member 3', accessor: (row) => row.members[2] ? `${row.members[2].name} (${row.members[2].registerNumber})` : '-' },
@@ -383,7 +379,6 @@ const TeamsPage = () => {
               <th>Team #</th>
               <th>Team Name</th>
               <th>Department</th>
-              <th>Guide Name</th>
               <th>Members (4)</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
@@ -409,7 +404,6 @@ const TeamsPage = () => {
                   </td>
                   <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{team.teamName}</td>
                   <td>{team.department}</td>
-                  <td>{team.guideName || <span style={{ color: 'var(--text-muted)' }}>N/A</span>}</td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                       {team.members && team.members.map((m) => (
@@ -470,13 +464,13 @@ const TeamsPage = () => {
                 )}
 
                 {/* Team Info Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1.5fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr', gap: '1rem' }}>
                   <div className="form-group">
                     <label className="form-label">Team Number *</label>
                     <input
                       type="text"
                       className="form-input font-mono"
-                      placeholder="e.g. T-01"
+                      placeholder="e.g. 1"
                       value={formData.teamNumber}
                       onChange={(e) => setFormData({ ...formData, teamNumber: e.target.value })}
                       required
@@ -506,17 +500,6 @@ const TeamsPage = () => {
                       required
                     />
                   </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Guide Name (Optional)</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Faculty Guide / Mentor Name"
-                    value={formData.guideName}
-                    onChange={(e) => setFormData({ ...formData, guideName: e.target.value })}
-                  />
                 </div>
 
                 <hr style={{ borderColor: 'var(--border-color)', margin: '0.5rem 0' }} />
@@ -605,15 +588,9 @@ const TeamsPage = () => {
             </div>
 
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', backgroundColor: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                <div>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Department</span>
-                  <div style={{ fontWeight: '600' }}>{selectedTeam.department}</div>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Faculty Guide</span>
-                  <div style={{ fontWeight: '600' }}>{selectedTeam.guideName || 'None assigned'}</div>
-                </div>
+              <div style={{ backgroundColor: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Department</span>
+                <div style={{ fontWeight: '600' }}>{selectedTeam.department}</div>
               </div>
 
               <div>

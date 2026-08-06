@@ -17,11 +17,6 @@ const teamSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
-  guideName: {
-    type: String,
-    trim: true,
-    default: '',
-  },
   members: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Member',
