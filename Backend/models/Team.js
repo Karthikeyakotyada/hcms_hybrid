@@ -23,4 +23,7 @@ const teamSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+teamSchema.index({ department: 1 });
+teamSchema.index({ teamName: 1 });
+
 module.exports = mongoose.model('Team', teamSchema);

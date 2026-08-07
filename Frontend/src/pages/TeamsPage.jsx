@@ -196,7 +196,11 @@ const TeamsPage = () => {
   };
 
   useEffect(() => {
-    fetchTeams(1);
+    const handler = setTimeout(() => {
+      fetchTeams(1);
+    }, 200);
+
+    return () => clearTimeout(handler);
   }, [search, department, teamRange]);
 
   const handlePageChange = (newPage) => {

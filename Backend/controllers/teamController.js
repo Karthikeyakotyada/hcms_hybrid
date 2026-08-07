@@ -74,13 +74,16 @@ const getTeams = async (req, res) => {
       }
     }
 
-    const totalTeams = await Team.countDocuments(matchQuery);
-    const teams = await Team.find(matchQuery)
-      .populate('members')
-      .collation({ locale: 'en', numericOrdering: true })
-      .sort({ teamNumber: 1 })
-      .skip(skip)
-      .limit(limit);
+    const [totalTeams, teams] = await Promise.all([
+      Team.countDocuments(matchQuery),
+      Team.find(matchQuery)
+        .populate('members')
+        .collation({ locale: 'en', numericOrdering: true })
+        .sort({ teamNumber: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     res.json({
       teams,
@@ -102,12 +105,14 @@ const getTeams = async (req, res) => {
 // @access  Private
 const getTeamById = async (req, res) => {
   try {
-    const team = await Team.findById(req.params.id).populate('members');
+    const [team, scores] = await Promise.all([
+      Team.findById(req.params.id).populate('members').lean(),
+      EvaluationScore.find({ teamId: req.params.id }).populate('roundId').lean(),
+    ]);
+
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
-
-    const scores = await EvaluationScore.find({ teamId: team._id }).populate('roundId');
 
     res.json({
       team,

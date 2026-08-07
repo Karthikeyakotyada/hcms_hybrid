@@ -28,7 +28,11 @@ const ResultsPage = () => {
   };
 
   useEffect(() => {
-    fetchResults();
+    const handler = setTimeout(() => {
+      fetchResults();
+    }, 200);
+
+    return () => clearTimeout(handler);
   }, [search, department]);
 
   const handleSort = (field) => {

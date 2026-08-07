@@ -34,4 +34,8 @@ const memberSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+memberSchema.index({ teamId: 1 });
+memberSchema.index({ name: 1 });
+memberSchema.index({ department: 1 });
+
 module.exports = mongoose.model('Member', memberSchema);

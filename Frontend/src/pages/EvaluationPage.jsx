@@ -46,6 +46,9 @@ const EvaluationPage = () => {
     order: '1',
   });
 
+  // Round scores cache for instant 0ms team score loading
+  const [roundScoresCache, setRoundScoresCache] = useState({});
+
   // Fetch all rounds on load
   const fetchRounds = async (selectRoundId = null) => {
     try {
@@ -54,6 +57,7 @@ const EvaluationPage = () => {
       if (data.length > 0) {
         let current = data.find((r) => r._id === selectRoundId) || data[0];
         setSelectedRound(current);
+        loadRoundScoresBatch(current._id);
       }
     } catch (err) {
       setError('Error fetching evaluation rounds');
@@ -64,56 +68,109 @@ const EvaluationPage = () => {
     fetchRounds();
   }, []);
 
-  // Fetch teams whenever search changes
+  // Fetch all scores for the active round in a single batch request
+  const loadRoundScoresBatch = async (roundId) => {
+    if (!roundId) return;
+    try {
+      const scores = await evalService.getScoresForRound(roundId);
+      const cache = {};
+      if (Array.isArray(scores)) {
+        scores.forEach((s) => {
+          if (s.teamId) {
+            cache[s.teamId.toString()] = s;
+          }
+        });
+      }
+      setRoundScoresCache(cache);
+      return cache;
+    } catch (err) {
+      console.error('Error batch-loading round scores:', err);
+    }
+  };
+
+  // Debounced search for teams list
   useEffect(() => {
-    const fetchTeamsList = async () => {
+    const handler = setTimeout(async () => {
       try {
         const teamsRes = await teamService.getTeams(1, 50, search);
         setTeams(teamsRes.teams);
         if (teamsRes.teams.length > 0 && !selectedTeam) {
-          if (selectedRound) {
-            loadTeamScores(selectedRound._id, teamsRes.teams[0]);
-          }
+          applyTeamScores(teamsRes.teams[0], roundScoresCache, selectedRound);
         }
       } catch (err) {
         setError('Error fetching teams');
       }
-    };
-    fetchTeamsList();
+    }, 200);
+
+    return () => clearTimeout(handler);
   }, [search]);
 
-  // Load team scores when selected round or team changes
-  const loadTeamScores = async (roundId, team) => {
-    if (!roundId || !team) return;
-    try {
-      setLoading(true);
-      setSelectedTeam(team);
-      setMessage('');
-      setError('');
+  // Apply score to state from cache or fetch if missing
+  const applyTeamScores = async (team, cache = roundScoresCache, round = selectedRound) => {
+    if (!team) return;
+    setSelectedTeam(team);
+    setMessage('');
+    setError('');
 
-      const evalData = await evalService.getRoundScores(roundId, team._id);
+    const teamIdStr = team._id.toString();
+    const cachedScore = cache && cache[teamIdStr];
 
-      setCompetitionScore(evalData.competitionScore !== null ? String(evalData.competitionScore) : '');
-      setComments(evalData.comments || '');
+    if (cachedScore) {
+      setCompetitionScore(
+        cachedScore.teamScore !== undefined && cachedScore.teamScore !== null
+          ? String(cachedScore.teamScore)
+          : ''
+      );
+      setComments(cachedScore.comments || '');
 
       const indMap = {};
-      if (evalData.individualScores) {
-        evalData.individualScores.forEach((item) => {
+      if (cachedScore.individualScores) {
+        cachedScore.individualScores.forEach((item) => {
           indMap[item.memberId] = item.score;
         });
       }
       setIndividualScores(indMap);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error loading team evaluation scores');
-    } finally {
-      setLoading(false);
+    } else if (round) {
+      // Fallback direct fetch if not in cache yet
+      try {
+        setLoading(true);
+        const evalData = await evalService.getRoundScores(round._id, team._id);
+        setCompetitionScore(
+          evalData.competitionScore !== null && evalData.competitionScore !== undefined
+            ? String(evalData.competitionScore)
+            : ''
+        );
+        setComments(evalData.comments || '');
+
+        const indMap = {};
+        if (evalData.individualScores) {
+          evalData.individualScores.forEach((item) => {
+            indMap[item.memberId] = item.score;
+          });
+        }
+        setIndividualScores(indMap);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Error loading team evaluation scores');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setCompetitionScore('');
+      setComments('');
+      setIndividualScores({});
     }
   };
 
-  const handleRoundChange = (round) => {
+  // Load team scores when selected round or team changes
+  const loadTeamScores = (roundId, team) => {
+    applyTeamScores(team, roundScoresCache, selectedRound);
+  };
+
+  const handleRoundChange = async (round) => {
     setSelectedRound(round);
+    const newCache = await loadRoundScoresBatch(round._id);
     if (selectedTeam) {
-      loadTeamScores(round._id, selectedTeam);
+      applyTeamScores(selectedTeam, newCache, round);
     }
   };
 
@@ -157,11 +214,24 @@ const EvaluationPage = () => {
 
     setSaving(true);
     try {
-      await evalService.saveRoundScores(selectedRound._id, selectedTeam._id, {
+      const res = await evalService.saveRoundScores(selectedRound._id, selectedTeam._id, {
         competitionScore: compScoreNum,
         comments,
         individualScores: payloadIndScores,
       });
+
+      // Update local roundScoresCache immediately
+      const updatedScoreDoc = res.scoreDoc || {
+        roundId: selectedRound._id,
+        teamId: selectedTeam._id,
+        teamScore: compScoreNum,
+        comments,
+        individualScores: payloadIndScores,
+      };
+      setRoundScoresCache((prev) => ({
+        ...prev,
+        [selectedTeam._id.toString()]: updatedScoreDoc,
+      }));
 
       setMessage(`Evaluation saved successfully for Team ${selectedTeam.teamNumber} in ${selectedRound.name}!`);
       setTimeout(() => setMessage(''), 4000);

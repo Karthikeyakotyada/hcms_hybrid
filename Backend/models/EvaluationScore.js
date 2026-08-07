@@ -42,5 +42,7 @@ const evaluationScoreSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 evaluationScoreSchema.index({ roundId: 1, teamId: 1 }, { unique: true });
+evaluationScoreSchema.index({ teamId: 1 });
+evaluationScoreSchema.index({ roundId: 1 });
 
 module.exports = mongoose.model('EvaluationScore', evaluationScoreSchema);

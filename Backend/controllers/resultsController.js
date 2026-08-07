@@ -25,7 +25,7 @@ const calculateOverallResults = async (search = '', department = '') => {
             { name: { $regex: search, $options: 'i' } },
             { registerNumber: { $regex: search, $options: 'i' } },
           ],
-        }).select('teamId');
+        }).select('teamId').lean();
 
         const teamIdsFromMembers = matchingMembers.map((m) => m.teamId);
 
@@ -42,7 +42,7 @@ const calculateOverallResults = async (search = '', department = '') => {
           { name: { $regex: search, $options: 'i' } },
           { registerNumber: { $regex: search, $options: 'i' } },
         ],
-      }).select('teamId');
+      }).select('teamId').lean();
 
       const teamIdsFromMembers = matchingMembers.map((m) => m.teamId);
 
@@ -55,23 +55,47 @@ const calculateOverallResults = async (search = '', department = '') => {
     }
   }
 
-  const teams = await Team.find(matchQuery).populate('members');
-  const rounds = await Round.find({ isActive: true }).sort({ order: 1 });
-  const allScores = await EvaluationScore.find();
+  // Parallelize lean queries for maximum performance
+  const [teams, rounds, allScores] = await Promise.all([
+    Team.find(matchQuery).populate('members').lean(),
+    Round.find({ isActive: true }).sort({ order: 1 }).lean(),
+    EvaluationScore.find().lean(),
+  ]);
 
-  // Create score lookup map: key = `${roundId}_${teamId}`
+  // Create fast score lookup maps:
+  // 1. scoreMap: key = `${roundId}_${teamId}` -> scoreDoc
+  // 2. indScoreMap: key = `${roundId}_${teamId}_${memberId}` -> indScore
   const scoreMap = new Map();
-  allScores.forEach((s) => scoreMap.set(`${s.roundId.toString()}_${s.teamId.toString()}`, s));
+  const indScoreMap = new Map();
+
+  for (let i = 0; i < allScores.length; i++) {
+    const s = allScores[i];
+    const rIdStr = s.roundId.toString();
+    const tIdStr = s.teamId.toString();
+    const pairKey = `${rIdStr}_${tIdStr}`;
+    scoreMap.set(pairKey, s);
+
+    if (s.individualScores && Array.isArray(s.individualScores)) {
+      for (let j = 0; j < s.individualScores.length; j++) {
+        const item = s.individualScores[j];
+        if (item.memberId && item.score !== null && item.score !== undefined) {
+          indScoreMap.set(`${pairKey}_${item.memberId.toString()}`, item.score);
+        }
+      }
+    }
+  }
 
   const results = teams.map((team) => {
     let weightedTotalScore = 0;
     let rawTotalScore = 0;
     let evaluatedRoundsCount = 0;
     const roundScoresList = [];
+    const teamIdStr = team._id.toString();
 
     rounds.forEach((r) => {
-      const scoreDoc = scoreMap.get(`${r._id.toString()}_${team._id.toString()}`);
-      const score = scoreDoc ? scoreDoc.teamScore : null;
+      const rIdStr = r._id.toString();
+      const scoreDoc = scoreMap.get(`${rIdStr}_${teamIdStr}`);
+      const score = scoreDoc && scoreDoc.teamScore !== undefined && scoreDoc.teamScore !== null ? scoreDoc.teamScore : null;
 
       if (score !== null) {
         evaluatedRoundsCount++;
@@ -90,22 +114,17 @@ const calculateOverallResults = async (search = '', department = '') => {
     const isFullyEvaluated = rounds.length > 0 && evaluatedRoundsCount === rounds.length;
     const finalScore = evaluatedRoundsCount > 0 ? Number(weightedTotalScore.toFixed(2)) : null;
 
-    const memberDetails = team.members.map((m) => {
+    const memberDetails = (team.members || []).map((m) => {
       let totalMemberScore = 0;
       let evaluatedRoundsForMember = 0;
+      const memberIdStr = m._id.toString();
 
       const memberRoundScores = rounds.map((r) => {
-        const scoreDoc = scoreMap.get(`${r._id.toString()}_${team._id.toString()}`);
-        let indScore = null;
-        if (scoreDoc && scoreDoc.individualScores) {
-          const match = scoreDoc.individualScores.find(
-            (item) => item.memberId.toString() === m._id.toString()
-          );
-          if (match && match.score !== null && match.score !== undefined) {
-            indScore = match.score;
-            totalMemberScore += indScore;
-            evaluatedRoundsForMember++;
-          }
+        const rIdStr = r._id.toString();
+        const indScore = indScoreMap.get(`${rIdStr}_${teamIdStr}_${memberIdStr}`) ?? null;
+        if (indScore !== null) {
+          totalMemberScore += indScore;
+          evaluatedRoundsForMember++;
         }
         return {
           roundId: r._id,
@@ -124,8 +143,8 @@ const calculateOverallResults = async (search = '', department = '') => {
         name: m.name,
         registerNumber: m.registerNumber,
         department: m.department,
-        email: m.email,
-        phone: m.phone,
+        email: m.email || '',
+        phone: m.phone || '',
         roundScores: memberRoundScores,
         avgScore: avgScore,
         evaluatedRoundsCount: evaluatedRoundsForMember,
@@ -197,7 +216,7 @@ const getResults = async (req, res) => {
 // @access  Private
 const getWinners = async (req, res) => {
   try {
-    let settings = await ApplicationSettings.findOne();
+    let settings = await ApplicationSettings.findOne().lean();
     const topCount = settings ? settings.topTeamsCount : 3;
 
     const results = await calculateOverallResults();
@@ -218,11 +237,14 @@ const getWinners = async (req, res) => {
 // @access  Private
 const getDashboardStats = async (req, res) => {
   try {
-    const totalTeams = await Team.countDocuments();
-    const totalParticipants = await Member.countDocuments();
-    const activeRoundsCount = await Round.countDocuments({ isActive: true });
+    const [totalTeams, totalParticipants, activeRounds, settingsDoc] = await Promise.all([
+      Team.countDocuments(),
+      Member.countDocuments(),
+      Round.find({ isActive: true }).select('_id').lean(),
+      ApplicationSettings.findOne().lean(),
+    ]);
 
-    let settings = await ApplicationSettings.findOne();
+    let settings = settingsDoc;
     if (!settings) {
       settings = await ApplicationSettings.create({
         isLocked: false,
@@ -230,10 +252,35 @@ const getDashboardStats = async (req, res) => {
       });
     }
 
-    const allResults = await calculateOverallResults();
-    const completedEvaluations = allResults.filter((t) => t.isFullyEvaluated).length;
-    const pendingEvaluations = totalTeams - completedEvaluations;
+    const activeRoundIds = activeRounds.map((r) => r._id);
+    const activeRoundsCount = activeRoundIds.length;
 
+    let completedEvaluations = 0;
+    if (activeRoundsCount > 0 && totalTeams > 0) {
+      // Fast aggregation: count how many active rounds each team has an evaluation for
+      const evaluatedCounts = await EvaluationScore.aggregate([
+        {
+          $match: {
+            roundId: { $in: activeRoundIds },
+            teamScore: { $ne: null, $exists: true },
+          },
+        },
+        {
+          $group: {
+            _id: '$teamId',
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $match: {
+            count: { $gte: activeRoundsCount },
+          },
+        },
+      ]);
+      completedEvaluations = evaluatedCounts.length;
+    }
+
+    const pendingEvaluations = Math.max(0, totalTeams - completedEvaluations);
     const progressPercentage =
       totalTeams > 0 ? Math.round((completedEvaluations / totalTeams) * 100) : 0;
 

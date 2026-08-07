@@ -10,17 +10,19 @@ const getScoresForRoundAndTeam = async (req, res) => {
   try {
     const { roundId, teamId } = req.params;
 
-    const team = await Team.findById(teamId).populate('members');
+    const [team, round, scoreDoc] = await Promise.all([
+      Team.findById(teamId).populate('members').lean(),
+      Round.findById(roundId).lean(),
+      EvaluationScore.findOne({ roundId, teamId }).lean(),
+    ]);
+
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    const round = await Round.findById(roundId);
     if (!round) {
       return res.status(404).json({ message: 'Evaluation round not found' });
     }
-
-    const scoreDoc = await EvaluationScore.findOne({ roundId, teamId });
 
     res.json({
       team,
@@ -34,6 +36,19 @@ const getScoresForRoundAndTeam = async (req, res) => {
   }
 };
 
+// @desc    Get all evaluation scores for a specific round (Batch fetch for instant UI loading)
+// @route   GET /api/evaluation/round/:roundId/scores
+// @access  Private
+const getScoresForRound = async (req, res) => {
+  try {
+    const { roundId } = req.params;
+    const scores = await EvaluationScore.find({ roundId }).lean();
+    res.json(scores);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching round scores', error: error.message });
+  }
+};
+
 // @desc    Save team competition & member scores for a specific round
 // @route   POST /api/evaluation/round/:roundId/team/:teamId
 // @access  Private
@@ -42,12 +57,15 @@ const saveScoresForRoundAndTeam = async (req, res) => {
     const { roundId, teamId } = req.params;
     const { competitionScore, comments, individualScores } = req.body;
 
-    const team = await Team.findById(teamId).populate('members');
+    const [team, round] = await Promise.all([
+      Team.findById(teamId).populate('members').lean(),
+      Round.findById(roundId).lean(),
+    ]);
+
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    const round = await Round.findById(roundId);
     if (!round) {
       return res.status(404).json({ message: 'Evaluation round not found' });
     }
@@ -84,7 +102,7 @@ const saveScoresForRoundAndTeam = async (req, res) => {
     }
 
     // Save or Update single EvaluationScore document
-    await EvaluationScore.findOneAndUpdate(
+    const savedDoc = await EvaluationScore.findOneAndUpdate(
       { roundId, teamId },
       {
         teamScore: numCompScore,
@@ -93,9 +111,12 @@ const saveScoresForRoundAndTeam = async (req, res) => {
         updatedBy: req.user ? req.user.username : 'Organizer',
       },
       { upsert: true, new: true }
-    );
+    ).lean();
 
-    res.json({ message: `Evaluation saved successfully for ${round.name}` });
+    res.json({
+      message: `Evaluation saved successfully for ${round.name}`,
+      scoreDoc: savedDoc,
+    });
   } catch (error) {
     console.error('Error saving round score:', error);
     res.status(500).json({ message: 'Error saving round evaluation', error: error.message });
@@ -104,5 +125,6 @@ const saveScoresForRoundAndTeam = async (req, res) => {
 
 module.exports = {
   getScoresForRoundAndTeam,
+  getScoresForRound,
   saveScoresForRoundAndTeam,
 };
