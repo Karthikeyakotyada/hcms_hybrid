@@ -29,11 +29,18 @@ const Navbar = ({ title, sidebarOpen, onToggleSidebar }) => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.4rem 0.9rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.35rem 0.9rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
           <SpiderIcon size={16} color="var(--spidey-cyan)" />
-          <div style={{ fontSize: '0.85rem' }}>
-            <span style={{ color: 'var(--text-secondary)' }}>Organizer: </span>
-            <strong style={{ color: 'var(--spidey-cyan)' }}>{user ? user.username : 'Organizer'}</strong>
+          <div style={{ fontSize: '0.82rem', lineHeight: '1.2' }}>
+            <div>
+              <span style={{ color: 'var(--text-secondary)' }}>Organizer: </span>
+              <strong style={{ color: 'var(--spidey-cyan)' }}>{user ? (user.name || user.username) : 'Organizer'}</strong>
+            </div>
+            {user?.organization && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {user.organization}
+              </div>
+            )}
           </div>
         </div>
 

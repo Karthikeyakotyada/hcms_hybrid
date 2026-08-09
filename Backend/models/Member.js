@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const memberSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
   teamId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Team',
@@ -14,7 +20,6 @@ const memberSchema = new mongoose.Schema({
   registerNumber: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
   },
   department: {
@@ -34,8 +39,9 @@ const memberSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-memberSchema.index({ teamId: 1 });
-memberSchema.index({ name: 1 });
-memberSchema.index({ department: 1 });
+memberSchema.index({ user: 1, registerNumber: 1 }, { unique: true });
+memberSchema.index({ user: 1, teamId: 1 });
+memberSchema.index({ user: 1, name: 1 });
+memberSchema.index({ user: 1, department: 1 });
 
 module.exports = mongoose.model('Member', memberSchema);

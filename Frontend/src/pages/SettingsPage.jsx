@@ -15,6 +15,11 @@ import {
   UserX,
   ShieldAlert,
   Sparkles,
+  RotateCcw,
+  Trash2,
+  KeyRound,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 
 const SettingsPage = () => {
@@ -28,6 +33,13 @@ const SettingsPage = () => {
   const [roundLockingId, setRoundLockingId] = useState(null);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+
+  // Double-Authentication Modal States
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetPhrase, setResetPhrase] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   const fetchSettingsData = async () => {
     try {
@@ -94,6 +106,45 @@ const SettingsPage = () => {
       setError(err.response?.data?.message || 'Error updating settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Open Double-Auth Modal
+  const handleOpenResetModal = () => {
+    setResetPhrase('');
+    setResetPassword('');
+    setResetError('');
+    setShowResetModal(true);
+  };
+
+  // Execute Double-Authenticated Reset
+  const handleConfirmReset = async (e) => {
+    e.preventDefault();
+    setResetError('');
+
+    if (resetPhrase.trim().toUpperCase() !== 'RESET') {
+      setResetError("Security phrase mismatch. You must type 'RESET' exactly.");
+      return;
+    }
+
+    if (!resetPassword) {
+      setResetError('Please enter your account password to verify authentication.');
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const result = await settingsService.resetEvaluation(resetPassword, resetPhrase.trim().toUpperCase());
+      setShowResetModal(false);
+      setMsg(result.message || 'All evaluation scores in your workspace have been successfully reset!');
+      setTimeout(() => setMsg(''), 5000);
+      await fetchSettingsData();
+    } catch (err) {
+      setResetError(
+        err.response?.data?.message || 'Security verification failed. Please check your password and try again.'
+      );
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -329,6 +380,170 @@ const SettingsPage = () => {
           </button>
         </div>
       </form>
+
+      {/* Danger Zone: Double-Authenticated Evaluation Scores Reset */}
+      <div
+        className="card"
+        style={{
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          backgroundColor: 'rgba(239, 68, 68, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <RotateCcw size={20} /> Reset Workspace Evaluation Scores
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.3rem', maxWidth: '650px' }}>
+              Clear and erase all competition scores and individual member scores across all evaluation rounds in your account. Requires double authentication (phrase confirmation + password verification). Team rosters and members will remain untouched.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenResetModal}
+            className="btn btn-danger"
+            style={{ padding: '0.65rem 1.5rem', fontSize: '0.88rem' }}
+            disabled={saving}
+          >
+            <Trash2 size={16} />
+            <span>Reset All Scores</span>
+          </button>
+        </div>
+      </div>
+
+      {/* High-Security Double-Authentication Modal */}
+      {showResetModal && (
+        <div className="modal-overlay">
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '480px',
+              border: '2px solid var(--spidey-red)',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), 0 0 35px rgba(229, 9, 20, 0.35)',
+            }}
+          >
+            <div className="modal-header" style={{ borderBottom: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <ShieldAlert size={22} color="#ef4444" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#ffffff' }}>
+                  Double Security Authentication
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowResetModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                disabled={resetting}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmReset}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Warning Banner */}
+                <div
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.85rem 1rem',
+                    fontSize: '0.82rem',
+                    color: '#fca5a5',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.6rem',
+                    lineHeight: '1.45',
+                  }}
+                >
+                  <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#ef4444' }} />
+                  <div>
+                    <strong style={{ color: '#ef4444' }}>CRITICAL DESTRUCTIVE ACTION:</strong>
+                    <br />
+                    This will permanently erase all team competition marks and individual scores in your workspace. Team profiles will NOT be deleted.
+                  </div>
+                </div>
+
+                {resetError && (
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '0.75rem 1rem',
+                      color: '#f87171',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{resetError}</span>
+                  </div>
+                )}
+
+                {/* Step 1: Confirmation Phrase */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: '700' }}>
+                    1. Type <code style={{ color: 'var(--spidey-cyan)', backgroundColor: 'rgba(0, 240, 255, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>RESET</code> below to confirm:
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Type RESET in uppercase"
+                    value={resetPhrase}
+                    onChange={(e) => setResetPhrase(e.target.value)}
+                    required
+                    disabled={resetting}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Step 2: Account Password Re-Authentication */}
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.85rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <KeyRound size={15} color="var(--spidey-cyan)" />
+                    2. Enter your account password to authorize:
+                  </label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="Account password"
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    required
+                    disabled={resetting}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '1rem 1.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowResetModal(false)}
+                  className="btn btn-secondary btn-sm"
+                  disabled={resetting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-danger btn-sm"
+                  style={{ padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  disabled={resetting || resetPhrase.trim().toUpperCase() !== 'RESET' || !resetPassword}
+                >
+                  <Trash2 size={15} />
+                  <span>{resetting ? 'Verifying Security...' : 'Authenticate & Reset Scores'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

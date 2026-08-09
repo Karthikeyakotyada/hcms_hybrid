@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, User, AlertCircle } from 'lucide-react';
 import SpiderIcon from '../components/SpiderIcon';
@@ -155,8 +155,27 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
-          Internal portal for Hackathon Organizers & Faculty Evaluators
+        <div
+          style={{
+            marginTop: '1.6rem',
+            textAlign: 'center',
+            fontSize: '0.88rem',
+            color: 'var(--text-secondary)',
+            borderTop: '1px solid var(--border-color)',
+            paddingTop: '1.25rem',
+          }}
+        >
+          New Organizer?{' '}
+          <Link
+            to="/register"
+            style={{
+              color: 'var(--spidey-cyan)',
+              fontWeight: '600',
+              textDecoration: 'none',
+            }}
+          >
+            Create an Account / Workspace
+          </Link>
         </div>
       </div>
     </div>

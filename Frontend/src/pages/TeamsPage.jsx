@@ -110,7 +110,7 @@ const SmoothRangeDropdown = ({ selectedValue, onChange, options }) => {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   padding: '0.5rem 0.75rem',
                   borderRadius: '8px',
                   fontSize: '0.83rem',
@@ -155,7 +155,7 @@ const TeamsPage = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Modals state
+  // Modal States
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -208,7 +208,14 @@ const TeamsPage = () => {
   };
 
   const openAddModal = () => {
-    setFormData(initialFormState);
+    setFormData({
+      teamNumber: '',
+      teamName: '',
+      department: '',
+      members: [
+        { name: '', registerNumber: '', department: '', email: '', phone: '' },
+      ],
+    });
     setFormError('');
     setShowAddModal(true);
   };
@@ -219,14 +226,16 @@ const TeamsPage = () => {
       teamNumber: team.teamNumber,
       teamName: team.teamName,
       department: team.department,
-      members: team.members.map((m) => ({
-        _id: m._id,
-        name: m.name,
-        registerNumber: m.registerNumber,
-        department: m.department,
-        email: m.email || '',
-        phone: m.phone || '',
-      })),
+      members: (team.members && team.members.length > 0)
+        ? team.members.map((m) => ({
+            _id: m._id,
+            name: m.name,
+            registerNumber: m.registerNumber,
+            department: m.department,
+            email: m.email || '',
+            phone: m.phone || '',
+          }))
+        : [{ name: '', registerNumber: '', department: team.department || '', email: '', phone: '' }],
     });
     setFormError('');
     setShowEditModal(true);
@@ -241,6 +250,27 @@ const TeamsPage = () => {
     const updatedMembers = [...formData.members];
     updatedMembers[index] = { ...updatedMembers[index], [field]: value };
     setFormData({ ...formData, members: updatedMembers });
+  };
+
+  const handleAddMemberRow = () => {
+    setFormData((prev) => ({
+      ...prev,
+      members: [
+        ...prev.members,
+        { name: '', registerNumber: '', department: prev.department || '', email: '', phone: '' },
+      ],
+    }));
+  };
+
+  const handleRemoveMemberRow = (index) => {
+    if (formData.members.length <= 1) {
+      alert('A team must have at least 1 member.');
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      members: prev.members.filter((_, i) => i !== index),
+    }));
   };
 
   const handleAddSubmit = async (e) => {
@@ -310,7 +340,15 @@ const TeamsPage = () => {
           { name: 'Member 1', registerNumber: 'REG101', department: 'Computer Science', email: 'm1@demo.com', phone: '9876543210' },
           { name: 'Member 2', registerNumber: 'REG102', department: 'Computer Science', email: 'm2@demo.com', phone: '9876543211' },
           { name: 'Member 3', registerNumber: 'REG103', department: 'Computer Science', email: 'm3@demo.com', phone: '9876543212' },
-          { name: 'Member 4', registerNumber: 'REG104', department: 'Computer Science', email: 'm4@demo.com', phone: '9876543213' },
+        ],
+      },
+      {
+        teamNumber: '2',
+        teamName: 'Code Alchemists',
+        department: 'Information Technology',
+        members: [
+          { name: 'Alice Smith', registerNumber: 'IT201', department: 'Information Technology', email: 'alice@demo.com', phone: '9876543214' },
+          { name: 'Bob Jones', registerNumber: 'IT202', department: 'Information Technology', email: 'bob@demo.com', phone: '9876543215' },
         ],
       },
     ];
@@ -328,10 +366,8 @@ const TeamsPage = () => {
     { header: 'Team Number', accessor: (row) => row.teamNumber },
     { header: 'Team Name', accessor: (row) => row.teamName },
     { header: 'Department', accessor: (row) => row.department },
-    { header: 'Member 1', accessor: (row) => row.members[0] ? `${row.members[0].name} (${row.members[0].registerNumber})` : '-' },
-    { header: 'Member 2', accessor: (row) => row.members[1] ? `${row.members[1].name} (${row.members[1].registerNumber})` : '-' },
-    { header: 'Member 3', accessor: (row) => row.members[2] ? `${row.members[2].name} (${row.members[2].registerNumber})` : '-' },
-    { header: 'Member 4', accessor: (row) => row.members[3] ? `${row.members[3].name} (${row.members[3].registerNumber})` : '-' },
+    { header: 'Members Count', accessor: (row) => (row.members || []).length },
+    { header: 'Members', accessor: (row) => (row.members || []).map((m) => `${m.name} (${m.registerNumber})`).join(', ') },
   ];
 
   return (
@@ -363,40 +399,40 @@ const TeamsPage = () => {
       </div>
 
       {/* Notifications */}
-      {successMsg && (
-        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-md)', color: '#34d399', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle size={18} /> {successMsg}
-        </div>
-      )}
-
       {error && (
-        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#f87171', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#f87171', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
           <AlertCircle size={18} /> {error}
         </div>
       )}
 
+      {successMsg && (
+        <div style={{ padding: '0.85rem 1rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 'var(--radius-md)', color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+          <CheckCircle size={18} /> {successMsg}
+        </div>
+      )}
+
       {/* Teams Table */}
-      <div className="table-container">
-        <table className="custom-table">
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <table className="table">
           <thead>
             <tr>
-              <th>Team #</th>
+              <th style={{ width: '100px' }}>Team #</th>
               <th>Team Name</th>
               <th>Department</th>
-              <th>Members (4)</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>Members</th>
+              <th style={{ textAlign: 'right', width: '140px' }}>Actions</th>
             </tr>
           </thead>
-          <tbody style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+          <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                  Loading teams...
+                <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  Loading teams data...
                 </td>
               </tr>
             ) : teams.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                   No teams found. Click "Add New Team" or use "Bulk Import" to create teams.
                 </td>
               </tr>
@@ -449,7 +485,7 @@ const TeamsPage = () => {
       {/* Add / Edit Team Modal */}
       {(showAddModal || showEditModal) && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content" style={{ maxWidth: '680px' }}>
             <div className="modal-header">
               <h3 style={{ fontSize: '1.2rem', fontWeight: '700' }}>
                 {showAddModal ? 'Add New Team' : `Edit Team ${selectedTeam?.teamNumber}`}
@@ -508,13 +544,38 @@ const TeamsPage = () => {
 
                 <hr style={{ borderColor: 'var(--border-color)', margin: '0.5rem 0' }} />
 
-                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Users size={18} /> Team Roster (Exactly 4 Members Required)
-                </h4>
+                {/* Header with Dynamic Add Member Button */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--spidey-cyan)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Users size={18} /> Team Members ({formData.members.length})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleAddMemberRow}
+                    className="btn btn-cyan btn-sm"
+                    style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Plus size={14} /> Add Member
+                  </button>
+                </div>
 
                 {formData.members.map((m, idx) => (
                   <div key={idx} style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
-                    <h5 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>Member #{idx + 1}</h5>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                      <h5 style={{ fontSize: '0.85rem', color: 'var(--spidey-cyan)', fontWeight: '700' }}>Member #{idx + 1}</h5>
+                      {formData.members.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMemberRow(idx)}
+                          className="btn btn-danger btn-sm"
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                          title="Remove this member"
+                        >
+                          <Trash2 size={12} /> Remove
+                        </button>
+                      )}
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: '0.75rem', marginBottom: '0.6rem' }}>
                       <input
                         type="text"
@@ -598,17 +659,17 @@ const TeamsPage = () => {
               </div>
 
               <div>
-                <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.75rem', color: 'var(--accent-primary)' }}>
-                  Team Roster (4 Members)
+                <h4 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem', color: 'var(--spidey-cyan)' }}>
+                  Team Roster ({selectedTeam.members ? selectedTeam.members.length : 0} Members)
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
                   {selectedTeam.members && selectedTeam.members.map((m, idx) => (
-                    <div key={m._id} className="card" style={{ padding: '1rem' }}>
+                    <div key={m._id || idx} className="card" style={{ padding: '1rem' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
                         Member #{idx + 1}
                       </div>
                       <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-primary)' }}>{m.name}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--accent-primary)', fontFamily: 'JetBrains Mono', margin: '0.2rem 0' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--spidey-cyan)', fontFamily: 'JetBrains Mono', margin: '0.2rem 0' }}>
                         Reg #: {m.registerNumber}
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Dept: {m.department}</div>
@@ -643,27 +704,21 @@ const TeamsPage = () => {
             <form onSubmit={handleBulkSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  Paste a valid JSON array of teams with exactly 4 members per team, or download the template below.
+                  Paste a valid JSON array of teams (each team can have any number of members, 1 or more), or download the template below.
                 </p>
 
                 <button type="button" onClick={downloadBulkTemplate} className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }}>
                   <Download size={14} /> Download Sample JSON Template
                 </button>
 
-                {formError && (
-                  <div style={{ padding: '0.75rem', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 'var(--radius-md)', color: '#f87171', fontSize: '0.85rem' }}>
-                    {formError}
-                  </div>
-                )}
-
                 <textarea
-                  className="form-textarea font-mono"
-                  rows="10"
+                  className="form-input font-mono"
+                  style={{ minHeight: '220px', resize: 'vertical' }}
                   placeholder="Paste JSON array here..."
                   value={bulkInput}
                   onChange={(e) => setBulkInput(e.target.value)}
                   required
-                ></textarea>
+                />
               </div>
 
               <div className="modal-footer">

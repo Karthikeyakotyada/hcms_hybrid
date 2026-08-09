@@ -11,8 +11,8 @@ export const settingsService = {
     return response.data;
   },
 
-  resetEvaluation: async () => {
-    const response = await api.post('/settings/reset');
+  resetEvaluation: async (password, confirmationPhrase = 'RESET') => {
+    const response = await api.post('/settings/reset', { password, confirmationPhrase });
     return response.data;
   },
 

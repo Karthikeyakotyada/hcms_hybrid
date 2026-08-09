@@ -26,6 +26,13 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, [token]);
 
+  const register = async ({ name, username, password, organization }) => {
+    const data = await authService.register({ name, username, password, organization });
+    setToken(data.token);
+    setUser(data);
+    return data;
+  };
+
   const login = async (username, password) => {
     const data = await authService.login(username, password);
     setToken(data.token);
@@ -46,6 +53,7 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated: !!token,
         loading,
+        register,
         login,
         logout,
       }}

@@ -147,6 +147,8 @@ const EvaluationPage = () => {
         if (activeTeam) {
           setSelectedTeam(activeTeam);
         }
+      } else {
+        setSelectedRound(null);
       }
     } catch (err) {
       console.error('Error loading evaluation data:', err);
@@ -443,13 +445,13 @@ const EvaluationPage = () => {
 
   const handleDeleteRound = async (r, e) => {
     e.stopPropagation();
-    if (rounds.length <= 1) {
-      alert('You must have at least one evaluation round.');
-      return;
-    }
     if (window.confirm(`Are you sure you want to delete '${r.name}' and all associated scores?`)) {
       try {
         await roundService.deleteRound(r._id);
+        const remainingRounds = rounds.filter((x) => x._id !== r._id);
+        if (selectedRound && selectedRound._id === r._id) {
+          setSelectedRound(remainingRounds[0] || null);
+        }
         await loadFullData();
       } catch (err) {
         setError('Error deleting evaluation round');
@@ -480,70 +482,116 @@ const EvaluationPage = () => {
         </button>
       </div>
 
-      {/* Rounds Horizontal Switcher Tabs & Team Panel Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem', flex: 1 }}>
-          {rounds.map((r) => {
-            const isSelected = selectedRound && selectedRound._id === r._id;
-            return (
-              <div
-                key={r._id}
-                onClick={() => handleRoundChange(r)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.6rem',
-                  padding: '0.65rem 1.15rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: isSelected ? 'rgba(229, 9, 20, 0.2)' : 'var(--bg-card)',
-                  border: isSelected ? '2px solid var(--spidey-red)' : '1px solid var(--border-color)',
-                  color: isSelected ? '#ffffff' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontWeight: isSelected ? '700' : '500',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isSelected ? '0 0 15px rgba(229, 9, 20, 0.3)' : 'none',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Layers size={17} color={isSelected ? 'var(--spidey-cyan)' : 'var(--text-muted)'} />
-                <span>{r.name}</span>
-                <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
-                  W: {r.weight || 1}
-                </span>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
-                  <button
-                    onClick={(e) => handleOpenEditRound(r, e)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-                    title="Edit Round"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => handleDeleteRound(r, e)}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
-                    title="Delete Round"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Toggle Slide Bar Button */}
-        <button
-          type="button"
-          onClick={() => setIsTeamDrawerOpen(!isTeamDrawerOpen)}
-          className="btn btn-secondary btn-sm"
-          style={{ padding: '0.5rem 0.9rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap', marginBottom: '0.5rem' }}
-          title={isTeamDrawerOpen ? 'Collapse Teams Panel' : 'Expand Teams Panel'}
+      {/* If No Rounds Exist Yet: Show Empty State */}
+      {rounds.length === 0 ? (
+        <div
+          className="card"
+          style={{
+            textAlign: 'center',
+            padding: '3.5rem 2rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+          }}
         >
-          {isTeamDrawerOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
-          <span>{isTeamDrawerOpen ? 'Hide Teams' : `Show Teams (${teams.length})`}</span>
-        </button>
-      </div>
+          <div
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '16px',
+              backgroundColor: 'rgba(0, 240, 255, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--spidey-cyan)',
+              border: '1px solid rgba(0, 240, 255, 0.25)',
+            }}
+          >
+            <Layers size={30} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+            No Evaluation Rounds Yet
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: '480px', lineHeight: '1.5' }}>
+            You haven't created any evaluation rounds for this workspace yet. Create your first round (e.g. Round 1 - Pitch, Round 2 - Prototype) to start scoring teams!
+          </p>
+          <button
+            onClick={handleOpenAddRound}
+            className="btn btn-primary"
+            style={{ padding: '0.75rem 1.75rem', marginTop: '0.5rem' }}
+          >
+            <Plus size={18} /> Create Your First Round
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Rounds Horizontal Switcher Tabs & Team Panel Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem', flex: 1 }}>
+              {rounds.map((r) => {
+                const isSelected = selectedRound && selectedRound._id === r._id;
+                return (
+                  <div
+                    key={r._id}
+                    onClick={() => handleRoundChange(r)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      padding: '0.65rem 1.15rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isSelected ? 'rgba(229, 9, 20, 0.2)' : 'var(--bg-card)',
+                      border: isSelected ? '2px solid var(--spidey-red)' : '1px solid var(--border-color)',
+                      color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontWeight: isSelected ? '700' : '500',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isSelected ? '0 0 15px rgba(229, 9, 20, 0.3)' : 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Layers size={17} color={isSelected ? 'var(--spidey-cyan)' : 'var(--text-muted)'} />
+                    <span>{r.name}</span>
+                    <span className="badge badge-info" style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+                      W: {r.weight || 1}
+                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                      <button
+                        onClick={(e) => handleOpenEditRound(r, e)}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                        title="Edit Round"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteRound(r, e)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                        title="Delete Round"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Toggle Slide Bar Button */}
+            <button
+              type="button"
+              onClick={() => setIsTeamDrawerOpen(!isTeamDrawerOpen)}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '0.5rem 0.9rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap', marginBottom: '0.5rem' }}
+              title={isTeamDrawerOpen ? 'Collapse Teams Panel' : 'Expand Teams Panel'}
+            >
+              {isTeamDrawerOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
+              <span>{isTeamDrawerOpen ? 'Hide Teams' : `Show Teams (${teams.length})`}</span>
+            </button>
+          </div>
 
       {/* Main Grid: Direct Team Search/Selector + Score Form */}
       <div style={{ display: 'grid', gridTemplateColumns: isTeamDrawerOpen ? '260px 1fr' : '1fr', gap: '1.25rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -838,6 +886,8 @@ const EvaluationPage = () => {
           )}
         </div>
       </div>
+    </>
+  )}
 
       {/* Round Create/Edit Modal */}
       {showRoundModal && (

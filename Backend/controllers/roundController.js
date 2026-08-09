@@ -6,7 +6,8 @@ const EvaluationScore = require('../models/EvaluationScore');
 // @access  Private
 const getRounds = async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ order: 1, createdAt: 1 });
+    const userId = req.user._id;
+    const rounds = await Round.find({ user: userId }).sort({ order: 1, createdAt: 1 });
     res.json(rounds);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching evaluation rounds', error: error.message });
@@ -18,13 +19,15 @@ const getRounds = async (req, res) => {
 // @access  Private
 const createRound = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { name, description, weight, order } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ message: 'Round name is required' });
     }
 
-    const existingCount = await Round.countDocuments();
+    const existingCount = await Round.countDocuments({ user: userId });
     const round = await Round.create({
+      user: userId,
       name: name.trim(),
       description: description ? description.trim() : '',
       weight: Number(weight) || 1,
@@ -44,8 +47,9 @@ const createRound = async (req, res) => {
 // @access  Private
 const updateRound = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { name, description, weight, order, isActive, isLocked } = req.body;
-    const round = await Round.findById(req.params.id);
+    const round = await Round.findOne({ _id: req.params.id, user: userId });
 
     if (!round) {
       return res.status(404).json({ message: 'Evaluation round not found' });
@@ -70,13 +74,14 @@ const updateRound = async (req, res) => {
 // @access  Private
 const deleteRound = async (req, res) => {
   try {
-    const round = await Round.findById(req.params.id);
+    const userId = req.user._id;
+    const round = await Round.findOne({ _id: req.params.id, user: userId });
     if (!round) {
       return res.status(404).json({ message: 'Evaluation round not found' });
     }
 
-    // Remove associated scores for this round
-    await EvaluationScore.deleteMany({ roundId: round._id });
+    // Remove associated scores for this round and user
+    await EvaluationScore.deleteMany({ roundId: round._id, user: userId });
 
     await round.deleteOne();
     res.json({ message: 'Round and associated scores deleted successfully' });

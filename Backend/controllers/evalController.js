@@ -8,20 +8,21 @@ const EvaluationScore = require('../models/EvaluationScore');
 // @access  Private
 const getScoresForRoundAndTeam = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { roundId, teamId } = req.params;
 
     const [team, round, scoreDoc] = await Promise.all([
-      Team.findById(teamId).populate('members').lean(),
-      Round.findById(roundId).lean(),
-      EvaluationScore.findOne({ roundId, teamId }).lean(),
+      Team.findOne({ _id: teamId, user: userId }).populate('members').lean(),
+      Round.findOne({ _id: roundId, user: userId }).lean(),
+      EvaluationScore.findOne({ roundId, teamId, user: userId }).lean(),
     ]);
 
     if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ message: 'Team not found in your workspace' });
     }
 
     if (!round) {
-      return res.status(404).json({ message: 'Evaluation round not found' });
+      return res.status(404).json({ message: 'Evaluation round not found in your workspace' });
     }
 
     res.json({
@@ -41,8 +42,9 @@ const getScoresForRoundAndTeam = async (req, res) => {
 // @access  Private
 const getScoresForRound = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { roundId } = req.params;
-    const scores = await EvaluationScore.find({ roundId }).lean();
+    const scores = await EvaluationScore.find({ roundId, user: userId }).lean();
     res.json(scores);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching round scores', error: error.message });
@@ -54,20 +56,21 @@ const getScoresForRound = async (req, res) => {
 // @access  Private
 const saveScoresForRoundAndTeam = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { roundId, teamId } = req.params;
     const { competitionScore, comments, individualScores } = req.body;
 
     const [team, round] = await Promise.all([
-      Team.findById(teamId).populate('members').lean(),
-      Round.findById(roundId).lean(),
+      Team.findOne({ _id: teamId, user: userId }).populate('members').lean(),
+      Round.findOne({ _id: roundId, user: userId }).lean(),
     ]);
 
     if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
+      return res.status(404).json({ message: 'Team not found in your workspace' });
     }
 
     if (!round) {
-      return res.status(404).json({ message: 'Evaluation round not found' });
+      return res.status(404).json({ message: 'Evaluation round not found in your workspace' });
     }
 
     if (round.isLocked) {
@@ -101,16 +104,19 @@ const saveScoresForRoundAndTeam = async (req, res) => {
       }
     }
 
-    // Save or Update single EvaluationScore document
+    // Save or Update single EvaluationScore document scoped to user
     const savedDoc = await EvaluationScore.findOneAndUpdate(
-      { roundId, teamId },
+      { roundId, teamId, user: userId },
       {
+        user: userId,
+        roundId,
+        teamId,
         teamScore: numCompScore,
         comments: comments ? comments.trim() : '',
         individualScores: formattedIndScores,
         updatedBy: req.user ? req.user.username : 'Organizer',
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     ).lean();
 
     res.json({
@@ -128,7 +134,8 @@ const saveScoresForRoundAndTeam = async (req, res) => {
 // @access  Private
 const getAllEvaluationScores = async (req, res) => {
   try {
-    const scores = await EvaluationScore.find().lean();
+    const userId = req.user._id;
+    const scores = await EvaluationScore.find({ user: userId }).lean();
     res.json(scores);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching all evaluation scores', error: error.message });

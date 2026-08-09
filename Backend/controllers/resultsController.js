@@ -1,26 +1,30 @@
+const mongoose = require('mongoose');
 const Team = require('../models/Team');
 const Member = require('../models/Member');
 const Round = require('../models/Round');
 const EvaluationScore = require('../models/EvaluationScore');
 const ApplicationSettings = require('../models/ApplicationSettings');
 
-// Helper to compute overall results for all teams dynamically across all rounds
-const calculateOverallResults = async (search = '', department = '') => {
-  let matchQuery = {};
+// Helper to compute overall results for all teams dynamically across all rounds for a specific user
+const calculateOverallResults = async (userId, search = '', department = '') => {
+  let matchQuery = { user: userId };
+
   if (department) {
     matchQuery.department = { $regex: department, $options: 'i' };
   }
+
   if (search) {
     const trimmed = search.trim();
     const cleanNum = trimmed.replace(/^t[-_\s]*/i, '').replace(/^0+/, '');
     const isNumeric = /^\d+$/.test(cleanNum) && cleanNum.length > 0;
 
     if (isNumeric) {
-      const teamExists = await Team.exists({ teamNumber: cleanNum });
+      const teamExists = await Team.exists({ teamNumber: cleanNum, user: userId });
       if (teamExists) {
         matchQuery.teamNumber = cleanNum;
       } else {
         const matchingMembers = await Member.find({
+          user: userId,
           $or: [
             { name: { $regex: search, $options: 'i' } },
             { registerNumber: { $regex: search, $options: 'i' } },
@@ -38,6 +42,7 @@ const calculateOverallResults = async (search = '', department = '') => {
       }
     } else {
       const matchingMembers = await Member.find({
+        user: userId,
         $or: [
           { name: { $regex: search, $options: 'i' } },
           { registerNumber: { $regex: search, $options: 'i' } },
@@ -55,16 +60,14 @@ const calculateOverallResults = async (search = '', department = '') => {
     }
   }
 
-  // Parallelize lean queries for maximum performance
+  // Parallelize lean queries for maximum performance scoped to this user
   const [teams, rounds, allScores] = await Promise.all([
     Team.find(matchQuery).populate('members').lean(),
-    Round.find({ isActive: true }).sort({ order: 1 }).lean(),
-    EvaluationScore.find().lean(),
+    Round.find({ user: userId, isActive: true }).sort({ order: 1 }).lean(),
+    EvaluationScore.find({ user: userId }).lean(),
   ]);
 
   // Create fast score lookup maps:
-  // 1. scoreMap: key = `${roundId}_${teamId}` -> scoreDoc
-  // 2. indScoreMap: key = `${roundId}_${teamId}_${memberId}` -> indScore
   const scoreMap = new Map();
   const indScoreMap = new Map();
 
@@ -201,9 +204,10 @@ const calculateOverallResults = async (search = '', department = '') => {
 // @access  Private
 const getResults = async (req, res) => {
   try {
+    const userId = req.user._id;
     const search = req.query.search || '';
     const department = req.query.department || '';
-    const results = await calculateOverallResults(search, department);
+    const results = await calculateOverallResults(userId, search, department);
     res.json(results);
   } catch (error) {
     console.error('Error computing results:', error);
@@ -216,10 +220,11 @@ const getResults = async (req, res) => {
 // @access  Private
 const getWinners = async (req, res) => {
   try {
-    let settings = await ApplicationSettings.findOne().lean();
+    const userId = req.user._id;
+    let settings = await ApplicationSettings.findOne({ user: userId }).lean();
     const topCount = settings ? settings.topTeamsCount : 3;
 
-    const results = await calculateOverallResults();
+    const results = await calculateOverallResults(userId);
     const evaluatedTeams = results.filter((t) => t.finalScore !== null);
     const winners = evaluatedTeams.slice(0, topCount);
 
@@ -237,16 +242,18 @@ const getWinners = async (req, res) => {
 // @access  Private
 const getDashboardStats = async (req, res) => {
   try {
+    const userId = req.user._id;
     const [totalTeams, totalParticipants, activeRounds, settingsDoc] = await Promise.all([
-      Team.countDocuments(),
-      Member.countDocuments(),
-      Round.find({ isActive: true }).select('_id').lean(),
-      ApplicationSettings.findOne().lean(),
+      Team.countDocuments({ user: userId }),
+      Member.countDocuments({ user: userId }),
+      Round.find({ user: userId, isActive: true }).select('_id').lean(),
+      ApplicationSettings.findOne({ user: userId }).lean(),
     ]);
 
     let settings = settingsDoc;
     if (!settings) {
       settings = await ApplicationSettings.create({
+        user: userId,
         isLocked: false,
         enableIndividualScoring: true,
         topTeamsCount: 3,
@@ -258,10 +265,11 @@ const getDashboardStats = async (req, res) => {
 
     let completedEvaluations = 0;
     if (activeRoundsCount > 0 && totalTeams > 0) {
-      // Fast aggregation: count how many active rounds each team has an evaluation for
+      const userObjectId = new mongoose.Types.ObjectId(userId.toString());
       const evaluatedCounts = await EvaluationScore.aggregate([
         {
           $match: {
+            user: userObjectId,
             roundId: { $in: activeRoundIds },
             teamScore: { $ne: null, $exists: true },
           },

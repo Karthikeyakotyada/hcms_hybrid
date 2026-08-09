@@ -7,6 +7,7 @@ const EvaluationScore = require('../models/EvaluationScore');
 // @access  Private
 const getTeams = async (req, res) => {
   try {
+    const userId = req.user._id;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -15,7 +16,7 @@ const getTeams = async (req, res) => {
     const maxTeam = req.query.maxTeam ? parseInt(req.query.maxTeam, 10) : null;
     const department = req.query.department ? req.query.department.trim() : '';
 
-    let matchQuery = {};
+    let matchQuery = { user: userId };
 
     if (minTeam !== null && maxTeam !== null && !isNaN(minTeam) && !isNaN(maxTeam)) {
       const allowedNumbers = [];
@@ -35,11 +36,12 @@ const getTeams = async (req, res) => {
       const isNumeric = /^\d+$/.test(cleanNum) && cleanNum.length > 0;
 
       if (isNumeric) {
-        const teamExists = await Team.exists({ teamNumber: cleanNum });
+        const teamExists = await Team.exists({ teamNumber: cleanNum, user: userId });
         if (teamExists) {
           matchQuery.teamNumber = cleanNum;
         } else {
           const matchingMembers = await Member.find({
+            user: userId,
             $or: [
               { name: { $regex: search, $options: 'i' } },
               { registerNumber: { $regex: search, $options: 'i' } },
@@ -57,6 +59,7 @@ const getTeams = async (req, res) => {
         }
       } else {
         const matchingMembers = await Member.find({
+          user: userId,
           $or: [
             { name: { $regex: search, $options: 'i' } },
             { registerNumber: { $regex: search, $options: 'i' } },
@@ -105,9 +108,10 @@ const getTeams = async (req, res) => {
 // @access  Private
 const getTeamById = async (req, res) => {
   try {
+    const userId = req.user._id;
     const [team, scores] = await Promise.all([
-      Team.findById(req.params.id).populate('members').lean(),
-      EvaluationScore.find({ teamId: req.params.id }).populate('roundId').lean(),
+      Team.findOne({ _id: req.params.id, user: userId }).populate('members').lean(),
+      EvaluationScore.find({ teamId: req.params.id, user: userId }).populate('roundId').lean(),
     ]);
 
     if (!team) {
@@ -123,24 +127,25 @@ const getTeamById = async (req, res) => {
   }
 };
 
-// @desc    Create a new team with 4 members
+// @desc    Create a new team with customizable member count (1 to N)
 // @route   POST /api/teams
 // @access  Private
 const createTeam = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { teamNumber, teamName, department, members } = req.body;
 
     if (!teamNumber || !teamName || !department) {
       return res.status(400).json({ message: 'Team number, name, and department are required' });
     }
 
-    if (!members || !Array.isArray(members) || members.length !== 4) {
-      return res.status(400).json({ message: 'Each team must have exactly 4 members' });
+    if (!members || !Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({ message: 'Team must have at least 1 member' });
     }
 
-    const existingTeam = await Team.findOne({ teamNumber: teamNumber.trim() });
+    const existingTeam = await Team.findOne({ teamNumber: teamNumber.trim(), user: userId });
     if (existingTeam) {
-      return res.status(400).json({ message: `Team Number '${teamNumber}' already exists` });
+      return res.status(400).json({ message: `Team Number '${teamNumber}' already exists in your workspace` });
     }
 
     const regNumbersInRequest = new Set();
@@ -161,6 +166,7 @@ const createTeam = async (req, res) => {
     }
 
     const existingMembers = await Member.find({
+      user: userId,
       registerNumber: { $in: Array.from(regNumbersInRequest) },
     });
     if (existingMembers.length > 0) {
@@ -171,6 +177,7 @@ const createTeam = async (req, res) => {
     }
 
     const newTeam = new Team({
+      user: userId,
       teamNumber: teamNumber.trim(),
       teamName: teamName.trim(),
       department: department.trim(),
@@ -181,6 +188,7 @@ const createTeam = async (req, res) => {
     const createdMemberIds = [];
     for (const m of members) {
       const memberDoc = await Member.create({
+        user: userId,
         teamId: newTeam._id,
         name: m.name.trim(),
         registerNumber: m.registerNumber.trim().toUpperCase(),
@@ -194,7 +202,7 @@ const createTeam = async (req, res) => {
     newTeam.members = createdMemberIds;
     await newTeam.save();
 
-    const populatedTeam = await Team.findById(newTeam._id).populate('members');
+    const populatedTeam = await Team.findOne({ _id: newTeam._id, user: userId }).populate('members');
     res.status(201).json(populatedTeam);
   } catch (error) {
     console.error('Error creating team:', error);
@@ -202,23 +210,24 @@ const createTeam = async (req, res) => {
   }
 };
 
-// @desc    Update team details and members
+// @desc    Update team details and customizable members (1 to N)
 // @route   PUT /api/teams/:id
 // @access  Private
 const updateTeam = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { teamNumber, teamName, department, members } = req.body;
     const teamId = req.params.id;
 
-    const team = await Team.findById(teamId);
+    const team = await Team.findOne({ _id: teamId, user: userId });
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
 
     if (teamNumber && teamNumber.trim() !== team.teamNumber) {
-      const dupTeam = await Team.findOne({ teamNumber: teamNumber.trim() });
+      const dupTeam = await Team.findOne({ teamNumber: teamNumber.trim(), user: userId });
       if (dupTeam) {
-        return res.status(400).json({ message: `Team Number '${teamNumber}' already exists` });
+        return res.status(400).json({ message: `Team Number '${teamNumber}' already exists in your workspace` });
       }
       team.teamNumber = teamNumber.trim();
     }
@@ -227,14 +236,30 @@ const updateTeam = async (req, res) => {
     if (department) team.department = department.trim();
 
     if (members) {
-      if (!Array.isArray(members) || members.length !== 4) {
-        return res.status(400).json({ message: 'Each team must have exactly 4 members' });
+      if (!Array.isArray(members) || members.length === 0) {
+        return res.status(400).json({ message: 'Team must have at least 1 member' });
       }
 
       const currentMemberIds = team.members.map((id) => id.toString());
-      for (const m of members) {
+      const regNumbersInRequest = new Set();
+
+      for (let i = 0; i < members.length; i++) {
+        const m = members[i];
+        if (!m.name || !m.registerNumber || !m.department) {
+          return res.status(400).json({
+            message: `Member ${i + 1} requires Name, Register Number, and Department`,
+          });
+        }
         const reg = m.registerNumber.trim().toUpperCase();
+        if (regNumbersInRequest.has(reg)) {
+          return res.status(400).json({
+            message: `Duplicate Register Number '${reg}' in member list`,
+          });
+        }
+        regNumbersInRequest.add(reg);
+
         const existing = await Member.findOne({
+          user: userId,
           registerNumber: reg,
           _id: { $nin: currentMemberIds },
         });
@@ -245,34 +270,51 @@ const updateTeam = async (req, res) => {
         }
       }
 
+      // Track kept member IDs to delete removed ones
+      const finalMemberIds = [];
+
       for (let i = 0; i < members.length; i++) {
         const mData = members[i];
-        if (mData._id && currentMemberIds.includes(mData._id)) {
-          await Member.findByIdAndUpdate(mData._id, {
+        if (mData._id && currentMemberIds.includes(mData._id.toString())) {
+          await Member.findOneAndUpdate(
+            { _id: mData._id, user: userId },
+            {
+              name: mData.name.trim(),
+              registerNumber: mData.registerNumber.trim().toUpperCase(),
+              department: mData.department.trim(),
+              email: mData.email ? mData.email.trim() : '',
+              phone: mData.phone ? mData.phone.trim() : '',
+            }
+          );
+          finalMemberIds.push(mData._id);
+        } else {
+          // Create new member added during edit
+          const newMemberDoc = await Member.create({
+            user: userId,
+            teamId: team._id,
             name: mData.name.trim(),
             registerNumber: mData.registerNumber.trim().toUpperCase(),
             department: mData.department.trim(),
             email: mData.email ? mData.email.trim() : '',
             phone: mData.phone ? mData.phone.trim() : '',
           });
-        } else {
-          const memberIdToUpdate = team.members[i];
-          if (memberIdToUpdate) {
-            await Member.findByIdAndUpdate(memberIdToUpdate, {
-              name: mData.name.trim(),
-              registerNumber: mData.registerNumber.trim().toUpperCase(),
-              department: mData.department.trim(),
-              email: mData.email ? mData.email.trim() : '',
-              phone: mData.phone ? mData.phone.trim() : '',
-            });
-          }
+          finalMemberIds.push(newMemberDoc._id);
         }
       }
+
+      // Delete members that were removed from the team
+      const stringFinalIds = finalMemberIds.map((id) => id.toString());
+      const membersToDelete = currentMemberIds.filter((id) => !stringFinalIds.includes(id));
+      if (membersToDelete.length > 0) {
+        await Member.deleteMany({ _id: { $in: membersToDelete }, user: userId });
+      }
+
+      team.members = finalMemberIds;
     }
 
     await team.save();
 
-    const updatedTeam = await Team.findById(teamId).populate('members');
+    const updatedTeam = await Team.findOne({ _id: teamId, user: userId }).populate('members');
     res.json(updatedTeam);
   } catch (error) {
     res.status(500).json({ message: 'Server error updating team', error: error.message });
@@ -284,15 +326,16 @@ const updateTeam = async (req, res) => {
 // @access  Private
 const deleteTeam = async (req, res) => {
   try {
+    const userId = req.user._id;
     const teamId = req.params.id;
-    const team = await Team.findById(teamId);
+    const team = await Team.findOne({ _id: teamId, user: userId });
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    await Member.deleteMany({ teamId });
-    await EvaluationScore.deleteMany({ teamId });
-    await Team.findByIdAndDelete(teamId);
+    await Member.deleteMany({ teamId, user: userId });
+    await EvaluationScore.deleteMany({ teamId, user: userId });
+    await Team.findOneAndDelete({ _id: teamId, user: userId });
 
     res.json({ message: `Team ${team.teamNumber} deleted successfully` });
   } catch (error) {
@@ -300,11 +343,12 @@ const deleteTeam = async (req, res) => {
   }
 };
 
-// @desc    Bulk import teams
+// @desc    Bulk import teams with flexible member count per team
 // @route   POST /api/teams/bulk-import
 // @access  Private
 const bulkImportTeams = async (req, res) => {
   try {
+    const userId = req.user._id;
     const { teams } = req.body;
     if (!teams || !Array.isArray(teams) || teams.length === 0) {
       return res.status(400).json({ message: 'Valid non-empty array of teams is required' });
@@ -316,18 +360,19 @@ const bulkImportTeams = async (req, res) => {
     for (let index = 0; index < teams.length; index++) {
       const t = teams[index];
       try {
-        if (!t.teamNumber || !t.teamName || !t.department || !t.members || t.members.length !== 4) {
-          errors.push(`Row ${index + 1}: Team must have teamNumber, teamName, department, and 4 members.`);
+        if (!t.teamNumber || !t.teamName || !t.department || !t.members || !Array.isArray(t.members) || t.members.length === 0) {
+          errors.push(`Row ${index + 1}: Team must have teamNumber, teamName, department, and at least 1 member.`);
           continue;
         }
 
-        const existingTeam = await Team.findOne({ teamNumber: t.teamNumber.trim() });
+        const existingTeam = await Team.findOne({ teamNumber: t.teamNumber.trim(), user: userId });
         if (existingTeam) {
           errors.push(`Row ${index + 1}: Team Number '${t.teamNumber}' already exists.`);
           continue;
         }
 
         const newTeam = await Team.create({
+          user: userId,
           teamNumber: t.teamNumber.trim(),
           teamName: t.teamName.trim(),
           department: t.department.trim(),
@@ -336,6 +381,7 @@ const bulkImportTeams = async (req, res) => {
         const memberIds = [];
         for (const m of t.members) {
           const memberDoc = await Member.create({
+            user: userId,
             teamId: newTeam._id,
             name: m.name.trim(),
             registerNumber: m.registerNumber.trim().toUpperCase(),

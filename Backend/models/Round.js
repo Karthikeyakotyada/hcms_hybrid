@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const roundSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
   name: {
     type: String,
     required: true,
@@ -27,5 +33,8 @@ const roundSchema = new mongoose.Schema({
     default: false,
   },
 }, { timestamps: true });
+
+roundSchema.index({ user: 1, order: 1 });
+roundSchema.index({ user: 1, isActive: 1 });
 
 module.exports = mongoose.model('Round', roundSchema);

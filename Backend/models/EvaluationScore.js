@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const evaluationScoreSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true,
+  },
   roundId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Round',
@@ -41,8 +47,8 @@ const evaluationScoreSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-evaluationScoreSchema.index({ roundId: 1, teamId: 1 }, { unique: true });
-evaluationScoreSchema.index({ teamId: 1 });
-evaluationScoreSchema.index({ roundId: 1 });
+evaluationScoreSchema.index({ user: 1, roundId: 1, teamId: 1 }, { unique: true });
+evaluationScoreSchema.index({ user: 1, teamId: 1 });
+evaluationScoreSchema.index({ user: 1, roundId: 1 });
 
 module.exports = mongoose.model('EvaluationScore', evaluationScoreSchema);
