@@ -1,6 +1,11 @@
 import api from './api';
 
 export const evalService = {
+  getAllScores: async () => {
+    const response = await api.get('/evaluation/all-scores');
+    return response.data;
+  },
+
   getScoresForRound: async (roundId) => {
     const response = await api.get(`/evaluation/round/${roundId}/scores`);
     return response.data;

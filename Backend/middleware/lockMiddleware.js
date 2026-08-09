@@ -5,6 +5,7 @@ const getSettings = async () => {
   if (!settings) {
     settings = await ApplicationSettings.create({
       isLocked: false,
+      enableIndividualScoring: true,
       topTeamsCount: 3,
     });
   }

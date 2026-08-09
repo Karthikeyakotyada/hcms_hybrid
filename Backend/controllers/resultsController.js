@@ -248,6 +248,7 @@ const getDashboardStats = async (req, res) => {
     if (!settings) {
       settings = await ApplicationSettings.create({
         isLocked: false,
+        enableIndividualScoring: true,
         topTeamsCount: 3,
       });
     }

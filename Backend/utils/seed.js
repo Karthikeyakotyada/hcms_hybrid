@@ -65,6 +65,7 @@ const seedInitialData = async () => {
     if (settingsCount === 0) {
       await ApplicationSettings.create({
         isLocked: false,
+        enableIndividualScoring: true,
         topTeamsCount: 3,
       });
       console.log('Default Application Settings initialized');

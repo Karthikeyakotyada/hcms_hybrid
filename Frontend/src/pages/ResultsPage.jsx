@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { resultsService } from '../services/resultsService';
+import { settingsService } from '../services/settingsService';
 import SearchBar from '../components/SearchBar';
 import ExportMenu from '../components/ExportMenu';
-import { Trophy, Users, ArrowUpDown } from 'lucide-react';
+import { Trophy, Users, ArrowUpDown, UserX } from 'lucide-react';
 
 const ResultsPage = () => {
   const [results, setResults] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [activeTab, setActiveTab] = useState('competition'); // 'competition' | 'individual'
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState('');
@@ -18,8 +20,12 @@ const ResultsPage = () => {
   const fetchResults = async () => {
     try {
       setLoading(true);
-      const data = await resultsService.getResults(search, department);
+      const [data, setRes] = await Promise.all([
+        resultsService.getResults(search, department),
+        settingsService.getSettings().catch(() => null),
+      ]);
       setResults(data);
+      if (setRes) setSettings(setRes);
     } catch (err) {
       console.error('Error loading results:', err);
     } finally {
@@ -180,7 +186,7 @@ const ResultsPage = () => {
                 <th>Team Name</th>
                 <th>Department</th>
                 {roundColumns.map((rName, idx) => (
-                  <th key={idx}>{rName} (1-10)</th>
+                  <th key={idx}>{rName} (1-50)</th>
                 ))}
                 <th style={{ cursor: 'pointer' }} onClick={() => handleSort('finalScore')}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>

@@ -85,8 +85,8 @@ const Round2Page = () => {
 
     // Validation
     const compScoreNum = Number(competitionScore);
-    if (isNaN(compScoreNum) || compScoreNum < 1 || compScoreNum > 10) {
-      setError('Competition Score is required and must be a number between 1 and 10');
+    if (isNaN(compScoreNum) || compScoreNum < 1 || compScoreNum > 50) {
+      setError('Competition Score is required and must be a number between 1 and 50');
       return;
     }
 
@@ -250,7 +250,7 @@ const Round2Page = () => {
                 </div>
               )}
 
-              {/* Section 1: Competition Score (Mandatory 1-10) */}
+              {/* Section 1: Competition Score (Mandatory 1-50) */}
               <div style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                   <div>
@@ -258,26 +258,26 @@ const Round2Page = () => {
                       Round 2 Competition Score *
                     </h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Final pitch & prototype competition score (Strict range: 1 to 10).
+                      Final pitch & prototype competition score (Strict range: 1 to 50).
                     </p>
                   </div>
-                  <span className="badge badge-info">Range: 1 - 10</span>
+                  <span className="badge badge-info">Range: 1 - 50</span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '1rem', alignItems: 'start' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Score (1 - 10) *</label>
+                    <label className="form-label">Score (1 - 50) *</label>
                     <input
                       type="number"
                       min="1"
-                      max="10"
+                      max="50"
                       step="0.5"
                       className="form-input font-mono"
                       style={{ fontSize: '1.2rem', fontWeight: '700', color: '#f59e0b', textAlign: 'center' }}
                       value={competitionScore}
                       onChange={(e) => setCompetitionScore(e.target.value)}
                       disabled={isLockedOrInactive}
-                      placeholder="Score (1-10)"
+                      placeholder="Score (1-50)"
                       required
                     />
                   </div>

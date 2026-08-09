@@ -5,6 +5,10 @@ const applicationSettingsSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  enableIndividualScoring: {
+    type: Boolean,
+    default: true,
+  },
   topTeamsCount: {
     type: Number,
     default: 3,

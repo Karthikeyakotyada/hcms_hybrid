@@ -10,6 +10,7 @@ const getSettings = async (req, res) => {
     if (!settings) {
       settings = await ApplicationSettings.create({
         isLocked: false,
+        enableIndividualScoring: true,
         topTeamsCount: 3,
       });
     }
@@ -24,7 +25,7 @@ const getSettings = async (req, res) => {
 // @access  Private
 const updateSettings = async (req, res) => {
   try {
-    const { isLocked, topTeamsCount } = req.body;
+    const { isLocked, enableIndividualScoring, topTeamsCount } = req.body;
 
     let settings = await ApplicationSettings.findOne();
     if (!settings) {
@@ -33,6 +34,10 @@ const updateSettings = async (req, res) => {
 
     if (typeof isLocked === 'boolean') {
       settings.isLocked = isLocked;
+    }
+
+    if (typeof enableIndividualScoring === 'boolean') {
+      settings.enableIndividualScoring = enableIndividualScoring;
     }
 
     if (topTeamsCount && Number(topTeamsCount) >= 1 && Number(topTeamsCount) <= 10) {

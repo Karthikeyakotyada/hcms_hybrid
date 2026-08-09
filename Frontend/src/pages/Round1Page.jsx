@@ -87,8 +87,8 @@ const Round1Page = () => {
 
     // Validation
     const compScoreNum = Number(competitionScore);
-    if (isNaN(compScoreNum) || compScoreNum < 1 || compScoreNum > 10) {
-      setError('Competition Score is required and must be a number between 1 and 10');
+    if (isNaN(compScoreNum) || compScoreNum < 1 || compScoreNum > 50) {
+      setError('Competition Score is required and must be a number between 1 and 50');
       return;
     }
 
@@ -144,7 +144,7 @@ const Round1Page = () => {
             <h3 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Round 1 Evaluation Module</h3>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-            Evaluate overall competition performance (Score 1-10) and individual participant scores.
+            Evaluate overall competition performance (Score 1-50) and individual participant scores.
           </p>
         </div>
 
@@ -251,7 +251,7 @@ const Round1Page = () => {
                 </div>
               )}
 
-              {/* Section 1: Competition Score (Mandatory 1-10) */}
+              {/* Section 1: Competition Score (Mandatory 1-50) */}
               <div style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                   <div>
@@ -259,26 +259,26 @@ const Round1Page = () => {
                       Round 1 Competition Score *
                     </h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      Overall team presentation & project score (Strict range: 1 to 10). Used for team rankings.
+                      Overall team presentation & project score (Strict range: 1 to 50). Used for team rankings.
                     </p>
                   </div>
-                  <span className="badge badge-info">Range: 1 - 10</span>
+                  <span className="badge badge-info">Range: 1 - 50</span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '1rem', alignItems: 'start' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Score (1 - 10) *</label>
+                    <label className="form-label">Score (1 - 50) *</label>
                     <input
                       type="number"
                       min="1"
-                      max="10"
+                      max="50"
                       step="0.5"
                       className="form-input font-mono"
                       style={{ fontSize: '1.2rem', fontWeight: '700', color: 'var(--accent-primary)', textAlign: 'center' }}
                       value={competitionScore}
                       onChange={(e) => setCompetitionScore(e.target.value)}
                       disabled={isReadOnly}
-                      placeholder="Score (1-10)"
+                      placeholder="Score (1-50)"
                       required
                     />
                   </div>

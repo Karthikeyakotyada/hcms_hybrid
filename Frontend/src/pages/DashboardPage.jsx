@@ -153,7 +153,7 @@ const DashboardPage = () => {
               Evaluation & Rounds Module
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Evaluate teams (1-10) and members (1-100). Create, edit & manage evaluation rounds.
+              Evaluate teams (1-50) and members (1-100). Create, edit & manage evaluation rounds.
             </p>
           </div>
         </Link>

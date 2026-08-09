@@ -10,11 +10,12 @@ import {
   Lock,
   Unlock,
   Layers,
+  X,
 } from 'lucide-react';
 import { settingsService } from '../services/settingsService';
 import SpiderIcon from './SpiderIcon';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = true, onClose }) => {
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -32,16 +33,28 @@ const Sidebar = () => {
   }, []);
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
       {/* Brand Header with Spider-Man Icon */}
-      <div style={{ padding: '1.5rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--spidey-red), #991b1b)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 18px var(--spidey-red-glow)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-          <SpiderIcon size={30} color="#ffffff" />
+      <div style={{ padding: '1.5rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--spidey-red), #991b1b)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 18px var(--spidey-red-glow)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+            <SpiderIcon size={30} color="#ffffff" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: '1.15rem', fontWeight: '800', letterSpacing: '0.04em', color: '#ffffff' }}>HEMS SPIDEY</h1>
+            <p style={{ fontSize: '0.72rem', color: 'var(--spidey-cyan)', fontWeight: '700', letterSpacing: '0.06em' }}>EVALUATION SYSTEM</p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontSize: '1.15rem', fontWeight: '800', letterSpacing: '0.04em', color: '#ffffff' }}>HEMS SPIDEY</h1>
-          <p style={{ fontSize: '0.72rem', color: 'var(--spidey-cyan)', fontWeight: '700', letterSpacing: '0.06em' }}>EVALUATION SYSTEM</p>
-        </div>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="sidebar-close-mobile-btn"
+            title="Close sidebar"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* Evaluation Round Status */}

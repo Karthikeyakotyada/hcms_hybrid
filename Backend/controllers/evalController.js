@@ -74,11 +74,11 @@ const saveScoresForRoundAndTeam = async (req, res) => {
       return res.status(403).json({ message: `Round '${round.name}' is currently locked.` });
     }
 
-    // Validate Team Score (1 - 10)
+    // Validate Team Score (1 - 50)
     const numCompScore = Number(competitionScore);
-    if (isNaN(numCompScore) || numCompScore < 1 || numCompScore > 10) {
+    if (isNaN(numCompScore) || numCompScore < 1 || numCompScore > 50) {
       return res.status(400).json({
-        message: 'Team Competition Score must be a valid number between 1 and 10',
+        message: 'Team Competition Score must be a valid number between 1 and 50',
       });
     }
 
@@ -123,8 +123,21 @@ const saveScoresForRoundAndTeam = async (req, res) => {
   }
 };
 
+// @desc    Get all evaluation scores across all rounds (Fast multi-round evaluation & average computing)
+// @route   GET /api/evaluation/all-scores
+// @access  Private
+const getAllEvaluationScores = async (req, res) => {
+  try {
+    const scores = await EvaluationScore.find().lean();
+    res.json(scores);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching all evaluation scores', error: error.message });
+  }
+};
+
 module.exports = {
   getScoresForRoundAndTeam,
   getScoresForRound,
+  getAllEvaluationScores,
   saveScoresForRoundAndTeam,
 };
