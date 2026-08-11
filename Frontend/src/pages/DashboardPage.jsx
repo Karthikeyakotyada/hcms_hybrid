@@ -43,7 +43,7 @@ const DashboardPage = () => {
   if (loading && !stats) {
     return (
       <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
-        Loading Spidey Dashboard statistics...
+        Loading ORVIXFLOW Dashboard statistics...
       </div>
     );
   }

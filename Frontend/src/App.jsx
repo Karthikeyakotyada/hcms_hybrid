@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children }) => {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0d14', color: '#00f0ff', fontWeight: '700' }}>
-        Authenticating HEMS Spidey Session...
+        Authenticating ORVIXFLOW Session...
       </div>
     );
   }

@@ -7,27 +7,23 @@ const SpiderIcon = ({ size = 28, className = '', style = {} }) => {
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        borderRadius: '50%',
+        borderRadius: '6px',
         overflow: 'hidden',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0a0d14',
-        boxShadow: '0 0 12px rgba(229, 9, 20, 0.5)',
-        border: '1px solid rgba(229, 9, 20, 0.6)',
+        backgroundColor: '#e6e6e6',
         flexShrink: 0,
         ...style,
       }}
     >
       <img
-        src="/Spidy.jpeg"
-        alt="Spider-Man Logo"
+        src="/logo.png"
+        alt="Logo"
         style={{
-          width: '180%',
-          height: '180%',
-          objectFit: 'cover',
-          objectPosition: 'center 45%',
-          transform: 'scale(1.2)',
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
         }}
       />
     </div>
