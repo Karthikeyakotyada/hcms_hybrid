@@ -64,7 +64,7 @@ const SmoothSelect = ({ value, onChange, options, icon: Icon, placeholder = 'Sel
   }, []);
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block', zIndex: isOpen ? 9999 : 'auto' }}>
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block', zIndex: isOpen ? 60 : 'auto' }}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -112,7 +112,7 @@ const SmoothSelect = ({ value, onChange, options, icon: Icon, placeholder = 'Sel
             position: 'absolute',
             top: 'calc(100% + 6px)',
             ...(alignRight ? { right: 0 } : { left: 0 }),
-            zIndex: 99999,
+            zIndex: 100,
             minWidth: '100%',
             width: 'max-content',
             backgroundColor: '#0c101c',
@@ -324,7 +324,6 @@ const AttendancePage = () => {
           border: '1px solid var(--border-color)',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)',
           position: 'relative',
-          zIndex: 40,
           overflow: 'visible',
         }}
       >
@@ -446,7 +445,6 @@ const AttendancePage = () => {
           gap: '1rem',
           padding: '1.25rem',
           position: 'relative',
-          zIndex: 30,
           overflow: 'visible',
         }}
       >

@@ -134,7 +134,7 @@ const AttendanceExportMenu = ({ currentSessionName, currentSessionData = [], cur
   };
 
   return (
-    <div ref={menuRef} style={{ position: 'relative', display: 'inline-block', zIndex: isOpen ? 99999 : 'auto' }}>
+    <div ref={menuRef} style={{ position: 'relative', display: 'inline-block', zIndex: isOpen ? 60 : 'auto' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="btn btn-secondary"
@@ -170,7 +170,7 @@ const AttendanceExportMenu = ({ currentSessionName, currentSessionData = [], cur
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
-            zIndex: 999999,
+            zIndex: 100,
             width: '280px',
             backgroundColor: '#0c101c',
             border: '1px solid rgba(255, 255, 255, 0.15)',

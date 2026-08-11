@@ -16,9 +16,16 @@ const getTitleFromPath = (pathname) => {
 };
 
 const MainLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 900);
   const location = useLocation();
   const pageTitle = getTitleFromPath(location.pathname);
+
+  // Auto-close sidebar on route navigation on mobile/tablet screens
+  React.useEffect(() => {
+    if (window.innerWidth <= 900) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname]);
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => !prev);

@@ -90,7 +90,7 @@ body::after {
 
 .sidebar {
   width: var(--sidebar-width);
-  background: #05070d;
+  background-color: #05070d;
   background-image: 
     linear-gradient(180deg, rgba(229, 9, 20, 0.08) 0%, transparent 40%),
     url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L30 60 M0 30 L60 30 M0 0 L60 60 M60 0 L0 60' stroke='rgba(229, 9, 20, 0.04)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
@@ -101,8 +101,8 @@ body::after {
   left: 0;
   display: flex;
   flex-direction: column;
-  z-index: 40;
-  box-shadow: 4px 0 25px rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  box-shadow: 4px 0 25px rgba(0, 0, 0, 0.8);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateX(0);
 }
@@ -172,9 +172,10 @@ body::after {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);
-    z-index: 38;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9998;
     animation: fadeIn 0.2s ease;
   }
   .sidebar-close-mobile-btn {
@@ -184,6 +185,9 @@ body::after {
     margin-left: 0 !important;
   }
   .sidebar {
+    z-index: 9999 !important;
+    background-color: #05070d !important;
+    box-shadow: 10px 0 50px rgba(0, 0, 0, 0.95);
     transform: translateX(-100%);
   }
   .sidebar.open {
@@ -193,7 +197,7 @@ body::after {
 
 .top-navbar {
   height: var(--header-height);
-  background: rgba(13, 19, 34, 0.9);
+  background: rgba(13, 19, 34, 0.95);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -202,7 +206,7 @@ body::after {
   padding: 0 1.5rem;
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 100;
 }
 
 .page-container {

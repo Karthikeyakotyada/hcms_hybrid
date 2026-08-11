@@ -83,37 +83,37 @@ const Sidebar = ({ isOpen = true, onClose }) => {
 
       {/* Navigation Links */}
       <nav style={{ flex: 1, paddingTop: '0.5rem' }}>
-        <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/dashboard" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <LayoutDashboard size={18} />
           <span>Dashboard</span>
         </NavLink>
 
-        <NavLink to="/teams" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/teams" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <Users size={18} />
           <span>Team Management</span>
         </NavLink>
 
-        <NavLink to="/attendance" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/attendance" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <QrCode size={18} />
           <span>Attendance</span>
         </NavLink>
 
-        <NavLink to="/evaluation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/evaluation" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <CheckSquare size={18} />
           <span>Evaluation & Rounds</span>
         </NavLink>
 
-        <NavLink to="/results" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/results" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <Trophy size={18} />
           <span>Results & Leaderboard</span>
         </NavLink>
 
-        <NavLink to="/winners" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/winners" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <Award size={18} style={{ color: 'var(--spidey-gold)' }} />
           <span>Winners Display</span>
         </NavLink>
 
-        <NavLink to="/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/settings" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <Sliders size={18} />
           <span>System Settings</span>
         </NavLink>
