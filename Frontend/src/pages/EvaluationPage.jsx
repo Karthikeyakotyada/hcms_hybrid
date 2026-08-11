@@ -24,7 +24,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   List,
+  Clock,
 } from 'lucide-react';
+import { formatIST, formatISTWithSuffix } from '../utils/dateUtils';
 
 const EvaluationPage = () => {
   const [rounds, setRounds] = useState([]);
@@ -381,20 +383,23 @@ const EvaluationPage = () => {
       });
 
       // Update in-memory allScores dictionary immediately
+      const nowISO = new Date().toISOString();
       const updatedScoreDoc = res.scoreDoc || {
         roundId: selectedRound._id,
         teamId: selectedTeam._id,
         teamScore: compScoreNum,
         comments,
         individualScores: payloadIndScores,
+        updatedAt: nowISO,
       };
+      if (!updatedScoreDoc.updatedAt) updatedScoreDoc.updatedAt = nowISO;
 
       setAllScores((prev) => ({
         ...prev,
         [`${selectedRound._id}_${selectedTeam._id}`]: updatedScoreDoc,
       }));
 
-      setMessage(`Evaluation saved successfully for Team ${selectedTeam.teamNumber} in ${selectedRound.name}!`);
+      setMessage(`Evaluation saved successfully for Team ${selectedTeam.teamNumber} in ${selectedRound.name} at ${formatISTWithSuffix(nowISO)}!`);
       setTimeout(() => setMessage(''), 4000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save evaluation score');
@@ -699,9 +704,20 @@ const EvaluationPage = () => {
                   </span>
                   <div>
                     <h3 style={{ fontSize: '1.3rem', fontWeight: '800' }}>{selectedTeam.teamName}</h3>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                      Dept: {selectedTeam.department}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Dept: {selectedTeam.department}
+                      </span>
+                      {allScores[`${selectedRound._id}_${selectedTeam._id}`]?.updatedAt ? (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--spidey-cyan)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Clock size={13} /> Last Evaluated: <strong>{formatISTWithSuffix(allScores[`${selectedRound._id}_${selectedTeam._id}`].updatedAt)}</strong>
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Clock size={13} /> Pending Evaluation for {selectedRound.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

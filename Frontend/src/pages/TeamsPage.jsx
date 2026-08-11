@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { teamService } from '../services/teamService';
+import { attendanceService } from '../services/attendanceService';
 import SearchBar from '../components/SearchBar';
 import Pagination from '../components/Pagination';
 import ExportMenu from '../components/ExportMenu';
@@ -17,6 +18,10 @@ import {
   Filter,
   ChevronDown,
   Check,
+  QrCode,
+  UserCheck,
+  UserX,
+  HelpCircle,
 } from 'lucide-react';
 
 const RANGE_OPTIONS = [
@@ -162,6 +167,9 @@ const TeamsPage = () => {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
 
+  const [teamAttendanceMap, setTeamAttendanceMap] = useState({});
+  const [teamAttendanceDetails, setTeamAttendanceDetails] = useState(null);
+
   // Form State for Add / Edit
   const initialFormState = {
     teamNumber: '',
@@ -184,9 +192,19 @@ const TeamsPage = () => {
       setLoading(true);
       const activeRange = RANGE_OPTIONS.find((r) => r.value === teamRange) || RANGE_OPTIONS[0];
       const limit = activeRange.min ? 50 : 10;
-      const data = await teamService.getTeams(page, limit, search, department, activeRange.min, activeRange.max);
+      const [data, attStats] = await Promise.all([
+        teamService.getTeams(page, limit, search, department, activeRange.min, activeRange.max),
+        attendanceService.getAttendanceStats().catch(() => null),
+      ]);
       setTeams(data.teams);
       setPagination(data.pagination);
+      if (attStats && attStats.teamBreakdown) {
+        const attMap = {};
+        attStats.teamBreakdown.forEach((tb) => {
+          attMap[tb.teamId] = tb;
+        });
+        setTeamAttendanceMap(attMap);
+      }
       setError('');
     } catch (err) {
       setError(err.response?.data?.message || 'Error loading teams');
@@ -241,9 +259,16 @@ const TeamsPage = () => {
     setShowEditModal(true);
   };
 
-  const openViewModal = (team) => {
+  const openViewModal = async (team) => {
     setSelectedTeam(team);
     setShowViewModal(true);
+    setTeamAttendanceDetails(null);
+    try {
+      const details = await attendanceService.getTeamAttendance(team._id);
+      setTeamAttendanceDetails(details);
+    } catch (e) {
+      console.warn('Could not fetch team attendance details:', e);
+    }
   };
 
   const handleFormMemberChange = (index, field, value) => {
@@ -411,63 +436,105 @@ const TeamsPage = () => {
         </div>
       )}
 
-      {/* Teams Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="table">
+      {/* Teams Table Container */}
+      <div className="table-container">
+        <table className="custom-table" style={{ width: '100%', minWidth: '950px' }}>
           <thead>
             <tr>
-              <th style={{ width: '100px' }}>Team #</th>
-              <th>Team Name</th>
-              <th>Department</th>
-              <th>Members</th>
-              <th style={{ textAlign: 'right', width: '140px' }}>Actions</th>
+              <th style={{ width: '100px', minWidth: '100px' }}>Team #</th>
+              <th style={{ minWidth: '180px' }}>Team Name</th>
+              <th style={{ minWidth: '160px' }}>Department</th>
+              <th style={{ minWidth: '280px' }}>Members</th>
+              <th style={{ width: '180px', minWidth: '180px' }}>Attendance</th>
+              <th style={{ textAlign: 'right', width: '150px', minWidth: '150px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
                   Loading teams data...
                 </td>
               </tr>
             ) : teams.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
                   No teams found. Click "Add New Team" or use "Bulk Import" to create teams.
                 </td>
               </tr>
             ) : (
-              teams.map((team) => (
-                <tr key={team._id}>
-                  <td>
-                    <span className="team-badge">{team.teamNumber}</span>
-                  </td>
-                  <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{team.teamName}</td>
-                  <td>{team.department}</td>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                      {team.members && team.members.map((m) => (
-                        <span key={m._id} style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                          &bull; {m.name} <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--text-muted)' }}>({m.registerNumber})</span>
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                      <button onClick={() => openViewModal(team)} className="btn btn-secondary btn-sm" title="View Team Details">
-                        <Eye size={14} />
-                      </button>
-                      <button onClick={() => openEditModal(team)} className="btn btn-secondary btn-sm" title="Edit Team">
-                        <Edit2 size={14} />
-                      </button>
-                      <button onClick={() => handleDelete(team)} className="btn btn-danger btn-sm" title="Delete Team">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              teams.map((team) => {
+                const att = teamAttendanceMap[team._id];
+                const totalM = team.members ? team.members.length : 0;
+                return (
+                  <tr key={team._id}>
+                    <td>
+                      <span className="team-badge" style={{ fontSize: '0.88rem', padding: '0.25rem 0.65rem' }}>
+                        {team.teamNumber}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.94rem' }}>
+                      {team.teamName}
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                      {team.department}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        {team.members && team.members.map((m) => (
+                          <div key={m._id} style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', fontSize: '0.84rem' }}>
+                            <span style={{ color: 'var(--spidey-red)', fontSize: '0.9rem', lineHeight: 1 }}>&bull;</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{m.name}</span>
+                            <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                              ({m.registerNumber})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      {att ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                          <span
+                            className="badge"
+                            style={{
+                              backgroundColor: att.presentCount === totalM && totalM > 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(0, 240, 255, 0.12)',
+                              color: att.presentCount === totalM && totalM > 0 ? '#34d399' : 'var(--spidey-cyan)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontSize: '0.76rem',
+                              padding: '0.25rem 0.65rem',
+                              width: 'fit-content',
+                            }}
+                            title={`${att.presentCount} Present, ${att.absentCount} Absent, ${att.notMarkedCount} Not Marked`}
+                          >
+                            <UserCheck size={13} /> {att.presentCount} / {totalM} Present
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', paddingLeft: '0.2rem' }}>
+                            {att.absentCount} Absent &bull; {att.notMarkedCount} Not Marked
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.45rem' }}>
+                        <button onClick={() => openViewModal(team)} className="btn btn-secondary btn-sm" title="View Team Details">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => openEditModal(team)} className="btn btn-secondary btn-sm" title="Edit Team">
+                          <Edit2 size={14} />
+                        </button>
+                        <button onClick={() => handleDelete(team)} className="btn btn-danger btn-sm" title="Delete Team">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -652,10 +719,31 @@ const TeamsPage = () => {
               </button>
             </div>
 
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ backgroundColor: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Department</span>
-                <div style={{ fontWeight: '600' }}>{selectedTeam.department}</div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ backgroundColor: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Department</span>
+                  <div style={{ fontWeight: '600' }}>{selectedTeam.department}</div>
+                </div>
+
+                <div style={{ backgroundColor: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Attendance ({teamAttendanceDetails?.session?.name || 'Active Session'})
+                  </span>
+                  <div style={{ fontWeight: '700', color: teamAttendanceDetails?.summary?.present === (selectedTeam.members?.length || 0) && (selectedTeam.members?.length || 0) > 0 ? '#10b981' : 'var(--spidey-cyan)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.1rem' }}>
+                    <UserCheck size={16} />
+                    {teamAttendanceDetails ? (
+                      <span>
+                        {teamAttendanceDetails.summary.present} / {teamAttendanceDetails.summary.total} Present
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: '0.4rem', fontWeight: '500' }}>
+                          ({teamAttendanceDetails.summary.absent} Absent &bull; {teamAttendanceDetails.summary.notMarked} Not Marked)
+                        </span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Loading attendance...</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -663,20 +751,44 @@ const TeamsPage = () => {
                   Team Roster ({selectedTeam.members ? selectedTeam.members.length : 0} Members)
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-                  {selectedTeam.members && selectedTeam.members.map((m, idx) => (
-                    <div key={m._id || idx} className="card" style={{ padding: '1rem' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                        Member #{idx + 1}
+                  {selectedTeam.members && selectedTeam.members.map((m, idx) => {
+                    const memberAtt = teamAttendanceDetails?.members?.find((dm) => dm._id === m._id || dm.registerNumber === m.registerNumber);
+                    const attStatus = memberAtt ? memberAtt.status : 'NOT_MARKED';
+
+                    return (
+                      <div key={m._id || idx} className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Member #{idx + 1}
+                            </span>
+                            {attStatus === 'PRESENT' && (
+                              <span className="badge badge-success" style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>
+                                ✓ Present
+                              </span>
+                            )}
+                            {attStatus === 'ABSENT' && (
+                              <span className="badge badge-danger" style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>
+                                ✕ Absent
+                              </span>
+                            )}
+                            {attStatus === 'NOT_MARKED' && (
+                              <span className="badge" style={{ backgroundColor: 'rgba(100, 116, 139, 0.2)', color: 'var(--text-muted)', fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>
+                                — Not Marked
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-primary)' }}>{m.name}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--spidey-cyan)', fontFamily: 'JetBrains Mono', margin: '0.2rem 0' }}>
+                            Reg #: {m.registerNumber}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Dept: {m.department}</div>
+                          {m.email && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Email: {m.email}</div>}
+                          {m.phone && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Phone: {m.phone}</div>}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-primary)' }}>{m.name}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--spidey-cyan)', fontFamily: 'JetBrains Mono', margin: '0.2rem 0' }}>
-                        Reg #: {m.registerNumber}
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Dept: {m.department}</div>
-                      {m.email && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Email: {m.email}</div>}
-                      {m.phone && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Phone: {m.phone}</div>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

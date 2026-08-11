@@ -11,6 +11,7 @@ import {
   Unlock,
   Layers,
   X,
+  QrCode,
 } from 'lucide-react';
 import { settingsService } from '../services/settingsService';
 import SpiderIcon from './SpiderIcon';
@@ -90,6 +91,11 @@ const Sidebar = ({ isOpen = true, onClose }) => {
         <NavLink to="/teams" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <Users size={18} />
           <span>Team Management</span>
+        </NavLink>
+
+        <NavLink to="/attendance" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <QrCode size={18} />
+          <span>Attendance</span>
         </NavLink>
 
         <NavLink to="/evaluation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>

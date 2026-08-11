@@ -11,6 +11,8 @@ import {
   ArrowRight,
   CheckSquare,
   Trophy,
+  QrCode,
+  Percent,
 } from 'lucide-react';
 
 const DashboardPage = () => {
@@ -58,10 +60,18 @@ const DashboardPage = () => {
     );
   }
 
+  const attStats = stats.attendanceStats || {
+    presentCount: 0,
+    absentCount: 0,
+    notMarkedCount: stats.totalParticipants || 0,
+    attendanceRate: 0,
+    sessionName: 'Event Check-in',
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Top Stat Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
         <StatCard
           title="Total Teams"
           value={stats.totalTeams}
@@ -74,8 +84,16 @@ const DashboardPage = () => {
           title="Total Participants"
           value={stats.totalParticipants}
           subtitle="Across all registered teams"
-          icon={UserCheck}
+          icon={Users}
           color="var(--spidey-cyan)"
+        />
+
+        <StatCard
+          title={`Attendance (${attStats.sessionName || 'Check-in'})`}
+          value={`${attStats.presentCount} / ${stats.totalParticipants}`}
+          subtitle={`${attStats.attendanceRate}% Present (${attStats.absentCount} A • ${attStats.notMarkedCount} NM)`}
+          icon={UserCheck}
+          color="#10b981"
         />
 
         <StatCard
@@ -103,29 +121,68 @@ const DashboardPage = () => {
         />
       </div>
 
-      {/* Progress Bar Card */}
-      <div className="card">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-primary)' }}>
-              Overall Evaluation Progress
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              {stats.completedEvaluations} of {stats.totalTeams} teams fully evaluated across active rounds
-            </p>
+      {/* Progress Bars Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+        {/* Attendance Progress Card */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <QrCode size={18} color="var(--spidey-cyan)" /> Attendance Rate ({attStats.sessionName})
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                {attStats.presentCount} Present &bull; {attStats.absentCount} Absent &bull; {attStats.notMarkedCount} Not Marked
+              </p>
+            </div>
+            <span style={{ fontSize: '1.5rem', fontWeight: '800', color: '#10b981' }}>
+              {attStats.attendanceRate}%
+            </span>
           </div>
-          <span style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--spidey-cyan)' }}>
-            {stats.progressPercentage}%
-          </span>
+
+          <div className="progress-container">
+            <div className="progress-fill" style={{ width: `${attStats.attendanceRate}%`, background: 'linear-gradient(90deg, #10b981, var(--spidey-cyan))' }}></div>
+          </div>
         </div>
 
-        <div className="progress-container">
-          <div className="progress-fill" style={{ width: `${stats.progressPercentage}%` }}></div>
+        {/* Evaluation Progress Card */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <CheckSquare size={18} color="var(--spidey-red)" /> Overall Evaluation Progress
+              </h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                {stats.completedEvaluations} of {stats.totalTeams} teams fully evaluated across active rounds
+              </p>
+            </div>
+            <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--spidey-cyan)' }}>
+              {stats.progressPercentage}%
+            </span>
+          </div>
+
+          <div className="progress-container">
+            <div className="progress-fill" style={{ width: `${stats.progressPercentage}%` }}></div>
+          </div>
         </div>
       </div>
 
       {/* Quick Action Shortcuts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+        <Link to="/attendance" style={{ textDecoration: 'none' }}>
+          <div className="card" style={{ transition: 'all 0.2s', cursor: 'pointer', border: '1px solid rgba(0, 240, 255, 0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+              <div style={{ padding: '0.6rem', borderRadius: '10px', backgroundColor: 'rgba(0, 240, 255, 0.15)', color: 'var(--spidey-cyan)' }}>
+                <QrCode size={22} />
+              </div>
+              <ArrowRight size={18} color="var(--spidey-cyan)" />
+            </div>
+            <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.2rem', fontWeight: '700' }}>Scan ID Attendance</h4>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Continuous ID card barcode/QR scanner with duplicate validation and session logs.
+            </p>
+          </div>
+        </Link>
+
         <Link to="/teams" style={{ textDecoration: 'none' }}>
           <div className="card" style={{ transition: 'all 0.2s', cursor: 'pointer' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.8rem' }}>

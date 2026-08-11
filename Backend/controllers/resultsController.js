@@ -4,6 +4,8 @@ const Member = require('../models/Member');
 const Round = require('../models/Round');
 const EvaluationScore = require('../models/EvaluationScore');
 const ApplicationSettings = require('../models/ApplicationSettings');
+const Attendance = require('../models/Attendance');
+const AttendanceSession = require('../models/AttendanceSession');
 
 // Helper to compute overall results for all teams dynamically across all rounds for a specific user
 const calculateOverallResults = async (userId, search = '', department = '') => {
@@ -61,11 +63,21 @@ const calculateOverallResults = async (userId, search = '', department = '') => 
   }
 
   // Parallelize lean queries for maximum performance scoped to this user
-  const [teams, rounds, allScores] = await Promise.all([
+  const [teams, rounds, allScores, activeSession] = await Promise.all([
     Team.find(matchQuery).populate('members').lean(),
     Round.find({ user: userId, isActive: true }).sort({ order: 1 }).lean(),
     EvaluationScore.find({ user: userId }).lean(),
+    AttendanceSession.findOne({ user: userId, isActive: true }).lean(),
   ]);
+
+  // Load active session attendance for informational summary display
+  const memberAttendanceMap = new Map();
+  if (activeSession) {
+    const activeAtt = await Attendance.find({ user: userId, sessionId: activeSession._id }).lean();
+    activeAtt.forEach((a) => {
+      memberAttendanceMap.set(a.memberId.toString(), a.status);
+    });
+  }
 
   // Create fast score lookup maps:
   const scoreMap = new Map();
@@ -95,10 +107,30 @@ const calculateOverallResults = async (userId, search = '', department = '') => 
     const roundScoresList = [];
     const teamIdStr = team._id.toString();
 
+    // Informational attendance summary
+    let presentMembers = 0;
+    let absentMembers = 0;
+    const totalMembers = team.members ? team.members.length : 0;
+    (team.members || []).forEach((m) => {
+      const st = memberAttendanceMap.get(m._id.toString());
+      if (st === 'PRESENT') presentMembers++;
+      else if (st === 'ABSENT') absentMembers++;
+    });
+    const notMarkedMembers = Math.max(0, totalMembers - presentMembers - absentMembers);
+
+    let latestScoreUpdate = null;
+
     rounds.forEach((r) => {
       const rIdStr = r._id.toString();
       const scoreDoc = scoreMap.get(`${rIdStr}_${teamIdStr}`);
       const score = scoreDoc && scoreDoc.teamScore !== undefined && scoreDoc.teamScore !== null ? scoreDoc.teamScore : null;
+      const updatedAt = scoreDoc ? scoreDoc.updatedAt || scoreDoc.createdAt : null;
+
+      if (updatedAt) {
+        if (!latestScoreUpdate || new Date(updatedAt) > new Date(latestScoreUpdate)) {
+          latestScoreUpdate = updatedAt;
+        }
+      }
 
       if (score !== null) {
         evaluatedRoundsCount++;
@@ -111,6 +143,7 @@ const calculateOverallResults = async (userId, search = '', department = '') => 
         roundName: r.name,
         score,
         weight: r.weight,
+        updatedAt,
       });
     });
 
@@ -120,19 +153,29 @@ const calculateOverallResults = async (userId, search = '', department = '') => 
     const memberDetails = (team.members || []).map((m) => {
       let totalMemberScore = 0;
       let evaluatedRoundsForMember = 0;
+      let memberLatestUpdate = null;
       const memberIdStr = m._id.toString();
 
       const memberRoundScores = rounds.map((r) => {
         const rIdStr = r._id.toString();
+        const scoreDoc = scoreMap.get(`${rIdStr}_${teamIdStr}`);
         const indScore = indScoreMap.get(`${rIdStr}_${teamIdStr}_${memberIdStr}`) ?? null;
+        const updatedAt = scoreDoc ? scoreDoc.updatedAt || scoreDoc.createdAt : null;
+
         if (indScore !== null) {
           totalMemberScore += indScore;
           evaluatedRoundsForMember++;
+          if (updatedAt) {
+            if (!memberLatestUpdate || new Date(updatedAt) > new Date(memberLatestUpdate)) {
+              memberLatestUpdate = updatedAt;
+            }
+          }
         }
         return {
           roundId: r._id,
           roundName: r.name,
           score: indScore,
+          updatedAt,
         };
       });
 
@@ -151,6 +194,7 @@ const calculateOverallResults = async (userId, search = '', department = '') => 
         roundScores: memberRoundScores,
         avgScore: avgScore,
         evaluatedRoundsCount: evaluatedRoundsForMember,
+        lastEvaluatedAt: memberLatestUpdate || latestScoreUpdate,
       };
     });
 
@@ -163,7 +207,15 @@ const calculateOverallResults = async (userId, search = '', department = '') => 
       rawTotalScore,
       weightedTotalScore: finalScore,
       finalScore,
+      lastEvaluatedAt: latestScoreUpdate,
       members: memberDetails,
+      attendanceSummary: {
+        present: presentMembers,
+        absent: absentMembers,
+        notMarked: notMarkedMembers,
+        total: totalMembers,
+        display: totalMembers > 0 ? `${presentMembers}/${totalMembers}` : '-',
+      },
       isFullyEvaluated,
       evaluatedRoundsCount,
       totalActiveRounds: rounds.length,
@@ -243,11 +295,12 @@ const getWinners = async (req, res) => {
 const getDashboardStats = async (req, res) => {
   try {
     const userId = req.user._id;
-    const [totalTeams, totalParticipants, activeRounds, settingsDoc] = await Promise.all([
+    const [totalTeams, totalParticipants, activeRounds, settingsDoc, activeSession] = await Promise.all([
       Team.countDocuments({ user: userId }),
       Member.countDocuments({ user: userId }),
       Round.find({ user: userId, isActive: true }).select('_id').lean(),
       ApplicationSettings.findOne({ user: userId }).lean(),
+      AttendanceSession.findOne({ user: userId, isActive: true }).lean(),
     ]);
 
     let settings = settingsDoc;
@@ -293,6 +346,35 @@ const getDashboardStats = async (req, res) => {
     const progressPercentage =
       totalTeams > 0 ? Math.round((completedEvaluations / totalTeams) * 100) : 0;
 
+    // Attendance stats for dashboard
+    let attendanceStats = {
+      presentCount: 0,
+      absentCount: 0,
+      notMarkedCount: totalParticipants,
+      attendanceRate: 0,
+      sessionName: activeSession ? activeSession.name : 'Event Check-in',
+    };
+
+    if (activeSession) {
+      const activeAttendance = await Attendance.find({ user: userId, sessionId: activeSession._id }).lean();
+      let pCount = 0;
+      let aCount = 0;
+      activeAttendance.forEach((a) => {
+        if (a.status === 'PRESENT') pCount++;
+        else if (a.status === 'ABSENT') aCount++;
+      });
+      const nmCount = Math.max(0, totalParticipants - pCount - aCount);
+      const rate = totalParticipants > 0 ? Number(((pCount / totalParticipants) * 100).toFixed(1)) : 0;
+
+      attendanceStats = {
+        presentCount: pCount,
+        absentCount: aCount,
+        notMarkedCount: nmCount,
+        attendanceRate: rate,
+        sessionName: activeSession.name,
+      };
+    }
+
     res.json({
       totalTeams,
       totalParticipants,
@@ -301,6 +383,7 @@ const getDashboardStats = async (req, res) => {
       completedEvaluations,
       pendingEvaluations,
       progressPercentage,
+      attendanceStats,
       recentActivities: [],
     });
   } catch (error) {
@@ -310,6 +393,7 @@ const getDashboardStats = async (req, res) => {
 };
 
 module.exports = {
+  calculateOverallResults,
   getResults,
   getWinners,
   getDashboardStats,

@@ -1,3 +1,8 @@
+const dns = require('dns');
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {}
+
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -10,6 +15,7 @@ const roundRoutes = require('./routes/roundRoutes');
 const evalRoutes = require('./routes/evalRoutes');
 const resultsRoutes = require('./routes/resultsRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
 
 const app = express();
 
@@ -45,6 +51,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/rounds', roundRoutes);
 app.use('/api/evaluation', evalRoutes);
+app.use('/api/attendance', attendanceRoutes);
 app.use('/api', resultsRoutes);
 app.use('/api', settingsRoutes);
 

@@ -263,7 +263,6 @@ body::after {
   box-shadow: var(--shadow-md);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   position: relative;
-  overflow: hidden;
 }
 
 .card::before {
@@ -394,41 +393,69 @@ input[type="number"] {
 /* Tables */
 .table-container {
   overflow-x: auto;
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   border: 1px solid var(--border-color);
   background-color: var(--bg-card);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
+.table,
 .custom-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
 
+.table th,
 .custom-table th {
-  background-color: rgba(6, 9, 17, 0.85);
+  background-color: rgba(6, 9, 17, 0.95);
   color: var(--spidey-cyan);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 1rem 1.25rem;
+  letter-spacing: 0.05em;
+  padding: 1.05rem 1.35rem;
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
+.table th:first-child,
+.custom-table th:first-child {
+  padding-left: 1.75rem;
+}
+
+.table th:last-child,
+.custom-table th:last-child {
+  padding-right: 1.75rem;
+}
+
+.table td,
 .custom-table td {
-  padding: 1rem 1.25rem;
+  padding: 1.05rem 1.35rem;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
-  font-size: 0.925rem;
+  font-size: 0.9rem;
+  vertical-align: middle;
 }
 
+.table td:first-child,
+.custom-table td:first-child {
+  padding-left: 1.75rem;
+}
+
+.table td:last-child,
+.custom-table td:last-child {
+  padding-right: 1.75rem;
+}
+
+.table tr:last-child td,
 .custom-table tr:last-child td {
   border-bottom: none;
 }
 
+.table tr:hover td,
 .custom-table tr:hover td {
-  background-color: rgba(229, 9, 20, 0.05);
+  background-color: rgba(255, 255, 255, 0.035);
 }
 
 /* Progress Bar */
@@ -582,3 +609,42 @@ input[type="number"] {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--spidey-cyan);
 }
+
+/* Smooth Micro-Animations */
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px var(--spidey-red-glow);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(229, 9, 20, 0.65), 0 0 10px var(--spidey-cyan);
+  }
+}
+
+@keyframes scanlineAnim {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(1000%);
+  }
+}
+
+.table-hover-row:hover {
+  background-color: rgba(255, 255, 255, 0.035) !important;
+}
+
+.pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+

@@ -3,7 +3,8 @@ import { resultsService } from '../services/resultsService';
 import { settingsService } from '../services/settingsService';
 import SearchBar from '../components/SearchBar';
 import ExportMenu from '../components/ExportMenu';
-import { Trophy, Users, ArrowUpDown, UserX } from 'lucide-react';
+import { Trophy, Users, ArrowUpDown, UserX, Clock } from 'lucide-react';
+import { formatIST, formatISTWithSuffix } from '../utils/dateUtils';
 
 const ResultsPage = () => {
   const [results, setResults] = useState([]);
@@ -80,6 +81,7 @@ const ResultsPage = () => {
           registerNumber: m.registerNumber,
           department: m.department,
           avgScore: m.avgScore,
+          lastEvaluatedAt: m.lastEvaluatedAt || team.lastEvaluatedAt,
         };
         if (m.roundScores) {
           m.roundScores.forEach((rs) => {
@@ -91,7 +93,7 @@ const ResultsPage = () => {
     }
   });
 
-  // Export Columns for Competition Results
+  // Export Columns for Competition Results with IST Timestamps
   const compExportColumns = [
     { header: 'Rank', accessor: (r) => r.rank },
     { header: 'Team Number', accessor: (r) => r.teamNumber },
@@ -101,10 +103,16 @@ const ResultsPage = () => {
       header: `${rName} Score`,
       accessor: (r) => (r.roundScores && r.roundScores[idx] ? r.roundScores[idx].score ?? '-' : '-'),
     })),
+    ...roundColumns.map((rName, idx) => ({
+      header: `${rName} Evaluated At (IST)`,
+      accessor: (r) => (r.roundScores && r.roundScores[idx]?.updatedAt ? formatISTWithSuffix(r.roundScores[idx].updatedAt) : '-'),
+    })),
     { header: 'Final Weighted Score', accessor: (r) => r.finalScore ?? '-' },
+    { header: 'Attendance', accessor: (r) => (r.attendanceSummary ? `${r.attendanceSummary.present}/${r.attendanceSummary.total}` : '-') },
+    { header: 'Last Evaluated At (IST)', accessor: (r) => (r.lastEvaluatedAt ? formatISTWithSuffix(r.lastEvaluatedAt) : '-') },
   ];
 
-  // Export Columns for Individual Results
+  // Export Columns for Individual Results with IST Timestamps
   const indExportColumns = [
     { header: 'Team Number', accessor: (r) => r.teamNumber },
     { header: 'Team Name', accessor: (r) => r.teamName },
@@ -116,6 +124,7 @@ const ResultsPage = () => {
       accessor: (r) => r[rName] ?? '-',
     })),
     { header: 'Average Score', accessor: (r) => r.avgScore ?? '-' },
+    { header: 'Last Evaluated At (IST)', accessor: (r) => (r.lastEvaluatedAt ? formatISTWithSuffix(r.lastEvaluatedAt) : '-') },
   ];
 
   return (
@@ -193,18 +202,19 @@ const ResultsPage = () => {
                     Final Score <ArrowUpDown size={14} />
                   </div>
                 </th>
+                <th>Attendance</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
+                  <td colSpan={6 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--spidey-cyan)', fontWeight: '700' }}>
                     Calculating competition rankings...
                   </td>
                 </tr>
               ) : sortedResults.length === 0 ? (
                 <tr>
-                  <td colSpan={5 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={6 + roundColumns.length} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                     No evaluated teams found.
                   </td>
                 </tr>
@@ -242,11 +252,40 @@ const ResultsPage = () => {
                     ))}
                     <td>
                       {row.finalScore !== null ? (
-                        <span className="font-mono" style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--spidey-red)' }}>
-                          {row.finalScore}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className="font-mono" style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--spidey-red)' }}>
+                            {row.finalScore}
+                          </span>
+                          {row.lastEvaluatedAt && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`Evaluated at ${formatISTWithSuffix(row.lastEvaluatedAt)}`}>
+                              <Clock size={10} /> {formatIST(row.lastEvaluatedAt, { second: undefined })}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Incomplete</span>
+                      )}
+                    </td>
+                    <td>
+                      {row.attendanceSummary ? (
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor: row.attendanceSummary.present === row.attendanceSummary.total && row.attendanceSummary.total > 0
+                              ? 'rgba(16, 185, 129, 0.15)'
+                              : 'rgba(0, 240, 255, 0.12)',
+                            color: row.attendanceSummary.present === row.attendanceSummary.total && row.attendanceSummary.total > 0
+                              ? '#34d399'
+                              : 'var(--spidey-cyan)',
+                            fontSize: '0.78rem',
+                            fontWeight: '700',
+                          }}
+                          title={`${row.attendanceSummary.present} Present, ${row.attendanceSummary.absent} Absent, ${row.attendanceSummary.notMarked} Not Marked`}
+                        >
+                          {row.attendanceSummary.display}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>-</span>
                       )}
                     </td>
                   </tr>
@@ -299,9 +338,16 @@ const ResultsPage = () => {
                     ))}
                     <td>
                       {r.avgScore !== null && r.avgScore !== undefined ? (
-                        <span className="font-mono" style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--spidey-red)' }}>
-                          {r.avgScore}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className="font-mono" style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--spidey-red)' }}>
+                            {r.avgScore}
+                          </span>
+                          {r.lastEvaluatedAt && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }} title={`Evaluated at ${formatISTWithSuffix(r.lastEvaluatedAt)}`}>
+                              <Clock size={10} /> {formatIST(r.lastEvaluatedAt, { second: undefined })}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>-</span>
                       )}

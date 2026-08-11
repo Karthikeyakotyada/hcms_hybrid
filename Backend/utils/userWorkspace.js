@@ -1,4 +1,5 @@
 const ApplicationSettings = require('../models/ApplicationSettings');
+const AttendanceSession = require('../models/AttendanceSession');
 
 /**
  * Initializes a clean workspace for a newly registered user.
@@ -17,10 +18,19 @@ const initializeUserWorkspace = async (userId) => {
       });
     }
 
-    // No dummy rounds are created by default.
-    // The user has full freedom to create their own custom rounds in Evaluation/Settings.
+    // Initialize default Attendance Session if not present
+    let session = await AttendanceSession.findOne({ user: userId });
+    if (!session) {
+      session = await AttendanceSession.create({
+        user: userId,
+        name: 'Event Check-in',
+        description: 'Main event check-in and registration scan',
+        isActive: true,
+        order: 1,
+      });
+    }
 
-    return { settings };
+    return { settings, session };
   } catch (error) {
     console.error(`Error initializing workspace for user ${userId}:`, error.message);
     throw error;

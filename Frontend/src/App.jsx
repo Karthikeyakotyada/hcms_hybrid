@@ -10,6 +10,7 @@ import EvaluationPage from './pages/EvaluationPage';
 import ResultsPage from './pages/ResultsPage';
 import WinnersPage from './pages/WinnersPage';
 import SettingsPage from './pages/SettingsPage';
+import AttendancePage from './pages/AttendancePage';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -46,6 +47,7 @@ const App = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/evaluation" element={<EvaluationPage />} />
           {/* Legacy fallback routes redirecting to /evaluation */}
           <Route path="/round1" element={<Navigate to="/evaluation" replace />} />
