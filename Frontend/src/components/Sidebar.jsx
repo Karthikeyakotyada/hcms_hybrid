@@ -36,7 +36,7 @@ const Sidebar = ({ isOpen = true, onClose }) => {
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
       {/* Brand Header with App Logo */}
-      <div style={{ padding: '1.5rem 1.25rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+      <div className="sidebar-brand-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#e6e6e6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)' }}>
             <img src="/logo.png" alt="App Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -60,7 +60,7 @@ const Sidebar = ({ isOpen = true, onClose }) => {
 
       {/* Evaluation Round Status */}
       {settings && (
-        <div style={{ padding: '1rem 1.25rem' }}>
+        <div className="sidebar-status-container">
           <div style={{ background: 'rgba(13, 19, 34, 0.95)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', boxShadow: '0 0 15px rgba(0, 240, 255, 0.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
               <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700' }}>System Status</span>
@@ -101,25 +101,9 @@ const Sidebar = ({ isOpen = true, onClose }) => {
           </div>
         </NavLink>
 
-        <NavLink to="/round1" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <Layers size={18} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <span>Round 1 (Elimination)</span>
-            {settings?.round1Locked ? <Lock size={14} color="#ef4444" /> : <Unlock size={14} color="#10b981" />}
-          </div>
-        </NavLink>
-
-        <NavLink to="/round2" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-          <Layers size={18} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <span>Round 2 (Finals)</span>
-            {settings?.round2Locked ? <Lock size={14} color="#ef4444" /> : <Unlock size={14} color="#10b981" />}
-          </div>
-        </NavLink>
-
         <NavLink to="/evaluation" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
           <CheckSquare size={18} />
-          <span>Scoring Matrix</span>
+          <span>Marks Evaluation</span>
         </NavLink>
 
         <NavLink to="/results" onClick={() => onClose && onClose()} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
@@ -139,7 +123,7 @@ const Sidebar = ({ isOpen = true, onClose }) => {
       </nav>
 
       {/* Footer Info */}
-      <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--border-color)', fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="sidebar-footer">
         <SpiderIcon size={16} color="var(--spidey-cyan)" />
         <span>ORVIXFLOW v2.0 &bull; Evaluation System</span>
       </div>

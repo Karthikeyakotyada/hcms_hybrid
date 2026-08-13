@@ -58,7 +58,7 @@ const seedInitialData = async () => {
 
     // 3. Ensure admin user exists
     const adminUsername = (process.env.ADMIN_USERNAME || 'admin').toLowerCase().trim();
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin122007';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin152007';
 
     let adminUser = await User.findOne({ username: adminUsername });
     if (!adminUser) {

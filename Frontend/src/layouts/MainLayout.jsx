@@ -6,9 +6,8 @@ import Navbar from '../components/Navbar';
 const getTitleFromPath = (pathname) => {
   if (pathname.includes('/dashboard')) return 'Dashboard Overview';
   if (pathname.includes('/teams')) return 'Team & Participant Management';
-  if (pathname.includes('/evaluation')) return 'Dynamic Round Evaluation';
-  if (pathname.includes('/round1')) return 'Round 1 Evaluation';
-  if (pathname.includes('/round2')) return 'Round 2 Evaluation';
+  if (pathname.includes('/attendance')) return 'Attendance Management (QR)';
+  if (pathname.includes('/evaluation')) return 'Marks Evaluation';
   if (pathname.includes('/results')) return 'Evaluation Results & Leaderboard';
   if (pathname.includes('/winners')) return 'Hackathon Winners Showcase';
   if (pathname.includes('/settings')) return 'System Settings & Controls';
